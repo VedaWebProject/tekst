@@ -6,6 +6,7 @@ from fastapi.openapi.utils import get_openapi
 
 from tekst.config import TekstConfig
 from tekst.models.settings import PlatformSettingsRead
+from tekst.settings import get_settings
 
 
 tags_metadata = [
@@ -20,16 +21,15 @@ tags_metadata = [
 ]
 
 
-def customize_openapi(app: FastAPI, cfg: TekstConfig, settings: PlatformSettingsRead):
-    def _custom_openapi():
-        if not app.openapi_schema:
-            app.openapi_schema = generate_schema(app, cfg, settings)
-        return app.openapi_schema
-
+def customize_openapi(app: FastAPI, cfg: TekstConfig):
+    async def _custom_openapi():
+        return await generate_schema(app, cfg)
     app.openapi = _custom_openapi
 
 
-def generate_schema(app: FastAPI, cfg: TekstConfig, settings: PlatformSettingsRead):
+async def generate_schema(app: FastAPI, cfg: TekstConfig):
+    settings: PlatformSettingsRead = await get_settings()
+    print(settings.info_platform_name)
     schema = get_openapi(
         title=settings.info_platform_name,
         version=cfg.tekst_version,

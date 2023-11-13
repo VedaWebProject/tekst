@@ -35,13 +35,11 @@ async def startup_routine(app: FastAPI) -> None:
     # pass all these things by hand...
     await init_odm(get_db(get_db_client(_cfg), _cfg))
 
-    settings = await get_settings()
-    customize_openapi(app, _cfg, settings)
+    customize_openapi(app, _cfg)
 
     # Hello World!
     log.info(
-        f"{settings.info_platform_name} ({_cfg.tekst_name} "
-        f"Server v{_cfg.tekst_version}) "
+        f"{_cfg.tekst_name} API v{_cfg.tekst_version} "
         f"running in {'DEVELOPMENT' if _cfg.dev_mode else 'PRODUCTION'} MODE"
     )
 

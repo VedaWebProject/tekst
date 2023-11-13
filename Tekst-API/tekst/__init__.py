@@ -9,6 +9,7 @@ license_url = [
 ][0].split(", ")[1]
 
 pkg_meta = dict(
+    name=data["Name"],
     version=data["Version"],
     description=data["Summary"],
     long_description=data["Description"],

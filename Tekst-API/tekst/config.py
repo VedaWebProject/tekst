@@ -134,11 +134,11 @@ class TekstConfig(BaseSettings):
 
     # Tekst information config
     tekst_name: str = "Tekst"
-    tekst_version: str = pkg_meta["version"]
-    tekst_description: str = pkg_meta["description"]
-    tekst_website: CustomHttpUrl = pkg_meta["website"]
-    tekst_license: str = pkg_meta["license"]
-    tekst_license_url: CustomHttpUrl = pkg_meta["license_url"]
+    tekst_version: str = pkg_meta.get("version", "?.?.?")
+    tekst_description: str = pkg_meta.get("description", "")
+    tekst_website: CustomHttpUrl = pkg_meta.get("website", "")
+    tekst_license: str = pkg_meta.get("license", "")
+    tekst_license_url: CustomHttpUrl = pkg_meta.get("license_url", "")
 
     @field_validator("db_host", "db_password", mode="after")
     @classmethod
