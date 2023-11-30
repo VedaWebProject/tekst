@@ -17,16 +17,14 @@ async def test_create_layer(
     session_cookie = await get_session_cookie(user_data)
     payload = {
         "title": "A test layer",
-        "textId": text_id,
         "description": "This is     a string with \n some space    chars",
+        "textId": text_id,
         "level": 0,
         "layerType": "plaintext",
         "ownerId": user_data["id"],
     }
 
-    resp = await test_client.post(
-        "/layers/plaintext", json=payload, cookies=session_cookie
-    )
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
     assert resp.status_code == 201, status_fail_msg(201, resp)
     assert "id" in resp.json()
     assert resp.json()["title"] == "A test layer"
@@ -54,19 +52,8 @@ async def test_create_layer_invalid(
         "layerType": "plaintext",
     }
 
-    resp = await test_client.post(
-        "/layers/plaintext", json=payload, cookies=session_cookie
-    )
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
     assert resp.status_code == 400, status_fail_msg(400, resp)
-
-
-# @pytest.mark.anyio
-# async def test_get_layer_types_info(api_path, test_client: AsyncClient):
-#     endpoint = f"/layers/types"
-#     resp = await test_client.get(endpoint)
-#     assert resp.status_code == 200, status_fail_msg(200, resp)
-#     assert isinstance(resp.json(), dict)
-#     assert len(resp.json()) == len(layer_type_manager.list_names())
 
 
 @pytest.mark.anyio
@@ -87,19 +74,18 @@ async def test_update_layer(
         "textId": text_id,
         "level": 0,
         "layerType": "plaintext",
-        "ownerId": user_data.get("id"),
+        "public": True,
     }
-    resp = await test_client.post(
-        "/layers/plaintext", json=payload, cookies=session_cookie
-    )
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
     assert resp.status_code == 201, status_fail_msg(201, resp)
     layer_data = resp.json()
     assert "id" in layer_data
     assert "ownerId" in layer_data
+    assert layer_data.get("public") is False
     # update layer
-    updates = {"title": "This Title Changed"}
+    updates = {"title": "This Title Changed", "layerType": "plaintext"}
     resp = await test_client.patch(
-        f"/layers/{layer_data['layerType']}/{layer_data['id']}",
+        f"/layers/{layer_data['id']}",
         json=updates,
         cookies=session_cookie,
     )
@@ -108,6 +94,27 @@ async def test_update_layer(
     assert "id" in resp.json()
     assert resp.json()["id"] == str(layer_data["id"])
     assert resp.json()["title"] == updates["title"]
+    # check if updating public/proposed has no effect (as intended)
+    updates = {"public": True, "proposed": True, "layerType": "plaintext"}
+    resp = await test_client.patch(
+        f"/layers/{layer_data['id']}",
+        json=updates,
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 200, status_fail_msg(200, resp)
+    assert isinstance(resp.json(), dict)
+    assert resp.json()["public"] is False
+    assert resp.json()["proposed"] is False
+    # logout
+    resp = await test_client.post("/auth/cookie/logout")
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # update layer unauthorized
+    updates = {"title": "This Title Changed Again", "layerType": "plaintext"}
+    resp = await test_client.patch(
+        f"/layers/{layer_data['id']}",
+        json=updates,
+    )
+    assert resp.status_code == 401, status_fail_msg(401, resp)
 
 
 @pytest.mark.anyio
@@ -130,9 +137,7 @@ async def test_create_layer_with_forged_owner_id(
         "layerType": "plaintext",
         "ownerId": "643d3cdc21efd6c46ae1527e",
     }
-    resp = await test_client.post(
-        "/layers/plaintext", json=payload, cookies=session_cookie
-    )
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
     assert resp.status_code == 201, status_fail_msg(201, resp)
     assert resp.json()["ownerId"] != payload["ownerId"]
 
@@ -179,13 +184,11 @@ async def test_access_private_layer(
     # register test superuser
     user_data = await register_test_user(is_superuser=True)
     session_cookie = await get_session_cookie(user_data)
-    # set layer to inactive
-    resp = await test_client.patch(
-        f"/layers/plaintext/{layer_id}", json={"public": False}, cookies=session_cookie
+    # unpublish
+    resp = await test_client.post(
+        f"/layers/{layer_id}/unpublish", cookies=session_cookie
     )
-    assert resp.status_code == 200, status_fail_msg(200, resp)
-    assert isinstance(resp.json(), dict)
-    assert resp.json()["public"] is False
+    assert resp.status_code == 204, status_fail_msg(204, resp)
     # logout
     resp = await test_client.post("/auth/cookie/logout")
     assert resp.status_code == 204, status_fail_msg(204, resp)
@@ -212,14 +215,137 @@ async def test_get_layers(
 
     layer_id = resp.json()[0]["id"]
 
-    resp = await test_client.get(f"/layers/plaintext/{layer_id}")
+    resp = await test_client.get(f"/layers/{layer_id}")
     assert resp.status_code == 200, status_fail_msg(200, resp)
     assert isinstance(resp.json(), dict)
     assert "layerType" in resp.json()
 
     # request invalid ID
-    resp = await test_client.get("/layers/plaintext/foo")
+    resp = await test_client.get("/layers/foo")
     assert resp.status_code == 422, status_fail_msg(422, resp)
+
+
+@pytest.mark.anyio
+async def test_propose_unpropose_publish_unpublish_layer(
+    api_path,
+    test_client: AsyncClient,
+    insert_sample_data,
+    status_fail_msg,
+    register_test_user,
+    get_session_cookie,
+):
+    text_id = (await insert_sample_data("texts", "nodes", "layers"))["texts"][0]
+    user_data = await register_test_user()
+    session_cookie = await get_session_cookie(user_data)
+    # create new layer (because only owner can update(write))
+    payload = {
+        "title": "Foo Bar Baz",
+        "textId": text_id,
+        "level": 0,
+        "layerType": "plaintext",
+        "ownerId": user_data.get("id"),
+    }
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
+    assert resp.status_code == 201, status_fail_msg(201, resp)
+    layer_data = resp.json()
+    assert "id" in layer_data
+    assert "ownerId" in layer_data
+    # become superuser
+    user_data = await register_test_user(is_superuser=True, alternative=True)
+    session_cookie = await get_session_cookie(user_data)
+    # publish unproposed layer
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/publish",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 400, status_fail_msg(400, resp)
+    # propose layer
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/propose",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # get all accessible layers, check if ours is proposed
+    resp = await test_client.get("/layers", params={"textId": text_id})
+    assert resp.status_code == 200, status_fail_msg(200, resp)
+    assert isinstance(resp.json(), list)
+    for layer in resp.json():
+        if layer["id"] == layer_data["id"]:
+            assert layer["proposed"]
+    # propose layer again
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/propose",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 400, status_fail_msg(400, resp)
+    # publish layer
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/publish",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # unpublish layer
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/unpublish",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # unpublish layer again
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/unpublish",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 400, status_fail_msg(400, resp)
+    # propose layer again
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/propose",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # unpropose layer
+    resp = await test_client.post(
+        f"/layers/{layer_data['id']}/unpropose",
+        cookies=session_cookie,
+    )
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+
+
+@pytest.mark.anyio
+async def test_delete_layer(
+    api_path,
+    test_client: AsyncClient,
+    insert_sample_data,
+    status_fail_msg,
+    register_test_user,
+    get_session_cookie,
+):
+    inserted_ids = await insert_sample_data("texts", "nodes", "layers")
+    text_id = inserted_ids["texts"][0]
+    layer_id = inserted_ids["layers"][0]
+    # get all accessible layers
+    resp = await test_client.get("/layers", params={"textId": text_id})
+    assert resp.status_code == 200, status_fail_msg(200, resp)
+    assert isinstance(resp.json(), list)
+    layers_count = len(resp.json())
+    # register test superuser
+    user_data = await register_test_user(is_superuser=True)
+    session_cookie = await get_session_cookie(user_data)
+    # delete layer
+    resp = await test_client.delete(f"/layers/{layer_id}", cookies=session_cookie)
+    assert resp.status_code == 400, status_fail_msg(400, resp)
+    # unpublish layer
+    resp = await test_client.post(
+        f"/layers/{layer_id}/unpublish",
+        cookies=session_cookie,
+    )
+    # delete layer
+    resp = await test_client.delete(f"/layers/{layer_id}", cookies=session_cookie)
+    assert resp.status_code == 204, status_fail_msg(204, resp)
+    # get all accessible layers again
+    resp = await test_client.get("/layers", params={"textId": text_id})
+    assert resp.status_code == 200, status_fail_msg(200, resp)
+    assert isinstance(resp.json(), list)
+    assert len(resp.json()) == layers_count - 1
 
 
 # @pytest.mark.anyio

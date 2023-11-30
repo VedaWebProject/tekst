@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useUsers } from '@/fetchers';
+import { useUsersAdmin } from '@/fetchers';
 import {
   NButton,
   NInput,
@@ -10,11 +10,12 @@ import {
   NSpin,
   NPagination,
   NList,
+  NCollapse,
+  NCollapseItem,
   useDialog,
 } from 'naive-ui';
 import UserListItem from '@/components/admin/UserListItem.vue';
 import HelpButtonWidget from '@/components/HelpButtonWidget.vue';
-import { hashCode } from '@/utils';
 import type { UserRead, UserUpdate } from '@/api';
 import { ref } from 'vue';
 import { computed } from 'vue';
@@ -24,13 +25,11 @@ import { useRoute } from 'vue-router';
 import { POST, PATCH, DELETE } from '@/api';
 import { useAuthStore } from '@/stores';
 import { positiveButtonProps, negativeButtonProps } from '@/components/dialogButtonProps';
-import IconHeading from '@/components/typography/IconHeading.vue';
 
 import SearchRound from '@vicons/material/SearchRound';
 import UndoRound from '@vicons/material/UndoRound';
-import PeopleFilled from '@vicons/material/PeopleFilled';
 
-const { users, error, load: loadUsers } = useUsers();
+const { users, error, load: loadUsers } = useUsersAdmin();
 const { message } = useMessages();
 const dialog = useDialog();
 const route = useRoute();
@@ -86,9 +85,10 @@ async function updateUser(user: UserRead, updates: UserUpdate) {
   if (!error) {
     message.success($t('admin.users.save', { username: user.username }));
     loadUsers();
+    filters.value = initialFilters();
     return updatedUser;
   } else {
-    message.error($t('errors.unexpected'), error.detail?.toString());
+    message.error($t('errors.unexpected'), error);
   }
 }
 
@@ -100,8 +100,8 @@ function handleSuperuserClick(user: UserRead) {
       : $t('admin.users.confirmMsg.setSuperuser', { username: user.username }),
     positiveText: $t('general.yesAction'),
     negativeText: $t('general.noAction'),
-    positiveButtonProps: positiveButtonProps,
-    negativeButtonProps: negativeButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: false,
     closable: false,
     onPositiveClick: () => updateUser(user, { isSuperuser: !user.isSuperuser }),
@@ -116,8 +116,8 @@ function handleActiveClick(user: UserRead) {
       : $t('admin.users.confirmMsg.setActive', { username: user.username }),
     positiveText: $t('general.yesAction'),
     negativeText: $t('general.noAction'),
-    positiveButtonProps: positiveButtonProps,
-    negativeButtonProps: negativeButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: false,
     closable: false,
     onPositiveClick: async () => {
@@ -147,8 +147,8 @@ function handleVerifiedClick(user: UserRead) {
       : $t('admin.users.confirmMsg.setVerified', { username: user.username }),
     positiveText: $t('general.yesAction'),
     negativeText: $t('general.noAction'),
-    positiveButtonProps: positiveButtonProps,
-    negativeButtonProps: negativeButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: false,
     closable: false,
     onPositiveClick: async () => {
@@ -175,8 +175,8 @@ function handleDeleteClick(user: UserRead) {
     content: $t('admin.users.confirmMsg.deleteUser', { username: user.username }),
     positiveText: $t('general.yesAction'),
     negativeText: $t('general.noAction'),
-    positiveButtonProps: positiveButtonProps,
-    negativeButtonProps: negativeButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: false,
     closable: false,
     onPositiveClick: async () => {
@@ -185,10 +185,16 @@ function handleDeleteClick(user: UserRead) {
         message.success($t('admin.users.msgUserDeleted', { username: user.username }));
         loadUsers();
       } else {
-        message.error($t('errors.unexpected'), error.detail?.toString());
+        message.error($t('errors.unexpected'), error);
       }
     },
   });
+}
+
+function handleFilterCollapseItemClick(data: { name: string; expanded: boolean }) {
+  if (data.name === 'filters' && !data.expanded) {
+    filters.value = initialFilters();
+  }
 }
 
 onMounted(() => {
@@ -199,55 +205,71 @@ onMounted(() => {
 </script>
 
 <template>
-  <IconHeading level="1" :icon="PeopleFilled">
-    {{ $t('admin.heading') }}: {{ $t('admin.users.heading') }}
-    <HelpButtonWidget help-key="adminUsersView" />
-  </IconHeading>
+  <h2>
+    {{ $t('admin.users.heading') }}
+    <HelpButtonWidget help-key="adminSystemUsersView" />
+  </h2>
 
   <template v-if="users && !error">
     <!-- Filters -->
-    <div style="margin-bottom: 1.5rem">
-      <n-input
-        v-model:value="filters.search"
-        :placeholder="$t('search.searchAction')"
-        style="margin-bottom: 1rem"
-        round
-      >
-        <template #prefix>
-          <n-icon :component="SearchRound" />
-        </template>
-      </n-input>
-      <n-space justify="space-between" style="padding-left: 12px">
-        <n-checkbox v-model:checked="filters.isActive" :label="$t('models.user.isActive')" />
-        <n-checkbox v-model:checked="filters.isInactive" :label="$t('models.user.isInactive')" />
-        <n-checkbox v-model:checked="filters.isVerified" :label="$t('models.user.isVerified')" />
-        <n-checkbox
-          v-model:checked="filters.isUnverified"
-          :label="$t('models.user.isUnverified')"
-        />
-        <n-checkbox v-model:checked="filters.isSuperuser" :label="$t('models.user.isSuperuser')" />
-        <n-checkbox v-model:checked="filters.isNoSuperuser" :label="$t('models.user.modelLabel')" />
-        <n-button secondary round @click="filters = initialFilters()">
-          {{ $t('general.resetAction') }}
-          <template #icon>
-            <n-icon :component="UndoRound" />
+    <n-collapse
+      style="margin-bottom: var(--layout-gap)"
+      @item-header-click="handleFilterCollapseItemClick"
+    >
+      <n-collapse-item :title="$t('general.filters')" name="filters">
+        <n-input
+          v-model:value="filters.search"
+          :placeholder="$t('search.searchAction')"
+          style="margin-bottom: var(--layout-gap)"
+          round
+        >
+          <template #prefix>
+            <n-icon :component="SearchRound" />
           </template>
-        </n-button>
-      </n-space>
-    </div>
+        </n-input>
+        <n-space vertical justify="space-between" style="padding-left: var(--layout-gap)">
+          <n-checkbox v-model:checked="filters.isActive" :label="$t('models.user.isActive')" />
+          <n-checkbox v-model:checked="filters.isInactive" :label="$t('models.user.isInactive')" />
+          <n-checkbox v-model:checked="filters.isVerified" :label="$t('models.user.isVerified')" />
+          <n-checkbox
+            v-model:checked="filters.isUnverified"
+            :label="$t('models.user.isUnverified')"
+          />
+          <n-checkbox
+            v-model:checked="filters.isSuperuser"
+            :label="$t('models.user.isSuperuser')"
+          />
+          <n-checkbox
+            v-model:checked="filters.isNoSuperuser"
+            :label="$t('models.user.modelLabel')"
+          />
+          <n-button
+            secondary
+            round
+            style="margin-top: var(--content-gap)"
+            @click="filters = initialFilters()"
+          >
+            {{ $t('general.resetAction') }}
+            <template #icon>
+              <n-icon :component="UndoRound" />
+            </template>
+          </n-button>
+        </n-space>
+      </n-collapse-item>
+    </n-collapse>
     <!-- Users List -->
     <div class="content-block">
       <template v-if="paginatedData.length > 0">
         <n-list style="background-color: transparent">
           <user-list-item
-            v-for="item in paginatedData"
-            :key="hashCode(item)"
-            :target-user="item"
+            v-for="user in paginatedData"
+            :key="user.id"
+            :target-user="user"
             :current-user="auth.user"
-            @active-click="(u: UserRead) => handleActiveClick(u)"
-            @verified-click="(u: UserRead) => handleVerifiedClick(u)"
-            @superuser-click="(u: UserRead) => handleSuperuserClick(u)"
-            @delete-click="(u: UserRead) => handleDeleteClick(u)"
+            @active-click="handleActiveClick"
+            @verified-click="handleVerifiedClick"
+            @superuser-click="handleSuperuserClick"
+            @delete-click="handleDeleteClick"
           />
         </n-list>
         <!-- Pagination -->
@@ -270,6 +292,7 @@ onMounted(() => {
 
   <n-spin
     v-else-if="!users && !error"
+    size="large"
     style="margin: 3rem 0 2rem 0; width: 100%"
     :description="$t('init.loading')"
   />

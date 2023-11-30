@@ -1,35 +1,30 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { NButton, NModal, NProgress, NSpin } from 'naive-ui';
+import { NButton, NModal, NProgress, NSpin, NIcon } from 'naive-ui';
 import MetadataDisplay from '@/components/browse/MetadataDisplay.vue';
-import ModalButtonFooter from '@/components/ModalButtonFooter.vue';
+import ButtonFooter from '@/components/ButtonFooter.vue';
 import IconHeading from '@/components/typography/IconHeading.vue';
 import UnitContainerHeaderWidget from '@/components/browse/UnitContainerHeaderWidget.vue';
-import { useProfile, useLayerCoverage } from '@/fetchers';
+import { useLayerCoverage } from '@/fetchers';
 import { useStateStore } from '@/stores';
+import type { AnyLayerRead } from '@/api';
 
 import InfoOutlined from '@vicons/material/InfoOutlined';
 import ChatBubbleOutlineOutlined from '@vicons/material/ChatBubbleOutlineOutlined';
 import FormatQuoteFilled from '@vicons/material/FormatQuoteFilled';
 import PercentOutlined from '@vicons/material/PercentOutlined';
+import PersonFilled from '@vicons/material/PersonFilled';
+import LabelOutlined from '@vicons/material/LabelOutlined';
+import UserDisplay from '@/components/UserDisplay.vue';
 
 const props = defineProps<{
-  layer: Record<string, any>;
+  layer: AnyLayerRead;
 }>();
 
 const state = useStateStore();
 
 const showInfoModal = ref(false);
-const { user: owner, error: ownerError } = useProfile(props.layer.ownerId, showInfoModal); // eslint-disable-line
 const { coverage, error: coverageError } = useLayerCoverage(props.layer.id, showInfoModal); // eslint-disable-line
-const ownerDisplayName = computed(
-  () =>
-    (owner.value &&
-      (owner.value.firstName && owner.value.lastName
-        ? `${owner.value.firstName} ${owner.value.lastName}`
-        : owner.value.username)) ||
-    ''
-);
 const presentNodes = computed(
   () => coverage.value && coverage.value.filter((n) => n.covered).length
 );
@@ -53,27 +48,36 @@ const coveragePercent = computed(
     preset="card"
     class="tekst-modal"
     size="large"
+    :title="layer.title"
     :bordered="false"
     :auto-focus="false"
-    :closable="false"
+    :closable="true"
+    header-style="padding-bottom: .25rem"
     to="#app-container"
     embedded
   >
-    <h2>{{ layer.title }}</h2>
+    <template #header>
+      <h2 style="margin: 0">{{ layer.title }}</h2>
+    </template>
 
-    <p>
-      {{ $t(`layerTypes.${layer.layerType}`) }}
-      {{ $t('models.meta.onLevel', { level: state.textLevelLabels[layer.level] }) }}.
+    <p v-if="layer.description">
+      {{ layer.description }}
     </p>
 
-    <p v-if="owner && !ownerError">
-      {{ $t('models.meta.providedBy') }}:
-      <RouterLink :to="{ name: 'user', params: { username: owner.username } }">{{
-        ownerDisplayName
-      }}</RouterLink>
+    <p
+      v-if="layer.owner"
+      style="display: flex; align-items: center; font-size: var(--app-ui-font-size-small)"
+    >
+      <n-icon :component="PersonFilled" style="margin-right: 4px" />
+      <RouterLink :to="{ name: 'user', params: { username: layer.owner.username } }">
+        <UserDisplay :user="layer.owner" />
+      </RouterLink>
     </p>
 
     <template v-if="layer.meta && Object.keys(layer.meta).length">
+      <IconHeading level="3" :icon="LabelOutlined">
+        {{ $t('models.meta.modelLabel') }}
+      </IconHeading>
       <MetadataDisplay :data="layer.meta" />
     </template>
 
@@ -124,11 +128,11 @@ const coveragePercent = computed(
     </template>
     <n-spin v-else style="width: 100%" />
 
-    <ModalButtonFooter>
+    <ButtonFooter>
       <n-button type="primary" @click="() => (showInfoModal = false)">
         {{ $t('general.closeAction') }}
       </n-button>
-    </ModalButtonFooter>
+    </ButtonFooter>
   </n-modal>
 </template>
 

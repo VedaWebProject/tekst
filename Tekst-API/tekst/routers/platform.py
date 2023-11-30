@@ -2,13 +2,12 @@ from typing import Annotated
 
 from beanie import PydanticObjectId
 from beanie.operators import Or
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from humps import decamelize
 
-from tekst.auth import OptionalUserDep, SuperuserDep
+from tekst.auth import OptionalUserDep, SuperuserDep, UserDep
 from tekst.config import TekstConfig
 from tekst.dependencies import get_cfg
-from tekst.layer_types import layer_type_manager
 from tekst.models.platform import PlatformData
 from tekst.models.segment import (
     ClientSegmentCreate,
@@ -49,11 +48,10 @@ async def get_platform_data(
     return PlatformData(
         texts=await get_all_texts(ou),
         settings=await get_settings(),
-        layer_types=layer_type_manager.get_layer_types_info(),
         system_segments=await ClientSegmentDocument.find(
             ClientSegmentDocument.is_system_segment == True  # noqa: E712
         ).to_list(),
-        pages_info=await ClientSegmentDocument.find(
+        info_segments=await ClientSegmentDocument.find(
             ClientSegmentDocument.is_system_segment == False  # noqa: E712
         )
         .project(ClientSegmentHead)
@@ -61,10 +59,14 @@ async def get_platform_data(
     )
 
 
-@router.get("/user/{usernameOrId}", summary="Get public user info")
+@router.get(
+    "/users/{usernameOrId}",
+    response_model=UserReadPublic,
+    summary="Get public user info",
+)
 async def get_public_user_info(
     username_or_id: Annotated[str | PydanticObjectId, Path(alias="usernameOrId")]
-) -> UserReadPublic:
+) -> dict:
     """Returns public information on the user with the specified username or ID"""
     if PydanticObjectId.is_valid(username_or_id):
         username_or_id = PydanticObjectId(username_or_id)
@@ -79,7 +81,8 @@ async def get_public_user_info(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User '{username_or_id}' does not exist",
         )
-    return dict(
+    return UserReadPublic(
+        id=user.id,
         username=user.username,
         **user.model_dump(
             include={decamelize(field): True for field in user.public_fields}
@@ -87,17 +90,21 @@ async def get_public_user_info(
     )
 
 
-@router.get("/i18n", summary="Get server-managed translations")
-async def get_translations(lang: str = None) -> dict:
-    """Returns server-managed translations."""
-    translations = {
-        "deDE": {"welcomeTest": '"Willkommen!", sagt der Server!'},
-        "enUS": {"welcomeTest": '"Welcome!", says the server!'},
-    }
-    if lang and lang in translations:
-        return translations[lang]
-    else:
-        return translations
+@router.get(
+    "/users", response_model=list[UserReadPublic], status_code=status.HTTP_200_OK
+)
+async def get_public_users(su: UserDep) -> list[UserDocument]:
+    return [
+        UserReadPublic(
+            id=user.id,
+            username=user.username,
+            **user.model_dump(
+                include={decamelize(field): True for field in user.public_fields}
+            ),
+        )
+        for user in await UserDocument.find_all().to_list()
+        if user.is_active
+    ]
 
 
 @router.patch(
@@ -116,24 +123,18 @@ async def update_platform_settings(
 
 
 @router.get(
-    "/segments",
+    "/segments/{id}",
     response_model=ClientSegmentRead,
     status_code=status.HTTP_200_OK,
 )
 async def get_segment(
-    key: Annotated[str, Query(description="Key of the segment to retrieve")],
-    locale: Annotated[
-        str, Query(description="Locale of the segment to retrieve")
-    ] = None,
+    segment_id: Annotated[PydanticObjectId, Path(alias="id")],
 ) -> ClientSegmentDocument:
-    segment = await ClientSegmentDocument.find_one(
-        ClientSegmentDocument.key == key,
-        ClientSegmentDocument.locale == locale,
-    )
+    segment = await ClientSegmentDocument.get(segment_id)
     if not segment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Client segment {key} doesn't exist",
+            detail=f"Client segment with ID {segment_id} doesn't exist",
         )
     return segment
 

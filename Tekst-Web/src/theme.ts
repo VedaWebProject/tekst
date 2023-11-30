@@ -25,6 +25,9 @@ const commonOverrides: GlobalThemeOverrides = {
     feedbackHeightMedium: '18px',
     feedbackHeightLarge: '20px',
   },
+  Badge: {
+    fontSize: 'var(--app-ui-font-size-mini)',
+  },
 };
 
 const lightOverrides: GlobalThemeOverrides = {
@@ -62,6 +65,9 @@ export function useTheme() {
       fade3: base.fade(0.6).hexa(),
       fade4: base.fade(0.8).hexa(),
       fade5: base.fade(0.9).hexa(),
+      inverted: base.negate().hex(),
+      invertedPastel: base.negate().desaturate(0.2).lighten(0.3).hex(),
+      invertedDark: base.negate().darken(0.6).hex(),
     };
   });
 

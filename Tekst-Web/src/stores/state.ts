@@ -29,22 +29,25 @@ export const useStateStore = defineStore('state', () => {
   }
 
   // locale
+
   const locale = ref(
     auth.user?.locale ||
       localStorage.getItem('locale') ||
       getAvaliableBrowserLocaleKey() ||
       i18n.global.locale
   );
+
   const locales = i18n.global.availableLocales;
   watch(locale, (after) => {
     localStorage.setItem('locale', after);
     setPageTitle();
   });
+
   async function setLocale(
     l: string = locale.value,
     updateUserLocale: boolean = true
   ): Promise<AvailableLocale> {
-    const lang = await setI18nLocale(l);
+    const lang = setI18nLocale(l);
     locale.value = lang.key;
     if (updateUserLocale && auth.user?.locale !== lang.key) {
       try {
@@ -58,6 +61,7 @@ export const useStateStore = defineStore('state', () => {
   }
 
   // current text
+
   const text = ref<TextRead>();
   watch(
     () => route.params.text,
@@ -70,6 +74,7 @@ export const useStateStore = defineStore('state', () => {
       }
     }
   );
+
   watch(
     () => text.value?.id,
     () => {
@@ -79,6 +84,7 @@ export const useStateStore = defineStore('state', () => {
   );
 
   // fallback text for invalid text references
+
   const fallbackText = computed(
     () =>
       text.value ||
@@ -88,6 +94,7 @@ export const useStateStore = defineStore('state', () => {
   );
 
   // text level labels
+
   const textLevelLabels = computed(
     () =>
       text.value?.levels.map(
@@ -100,12 +107,14 @@ export const useStateStore = defineStore('state', () => {
   );
 
   // global loading state
+
   const globalLoading = ref(false);
   const globalLoadingMsg = ref('');
   const globalLoadingProgress = ref(0);
   const startGlobalLoading = () => {
     globalLoading.value = true;
   };
+
   const finishGlobalLoading = async (delayMs: number = 0, resetLoadingDataDelayMs: number = 0) => {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
     globalLoading.value = false;
@@ -114,7 +123,9 @@ export const useStateStore = defineStore('state', () => {
     globalLoadingProgress.value = 0;
   };
 
-  const smallScreen = computed(() => windowSize.width.value < 860);
+  // responsiveness
+
+  const smallScreen = computed(() => windowSize.width.value < 900);
   const dropdownSize = computed(() => (smallScreen.value ? 'huge' : undefined));
 
   // detect touch device
@@ -135,7 +146,7 @@ export const useStateStore = defineStore('state', () => {
           username: auth.user?.username,
         })
       : undefined;
-    const pfName = pfData.value?.info?.platformName;
+    const pfName = pfData.value?.settings.infoPlatformName;
     document.title = [title, pfName].filter(Boolean).join(' | ');
   }
 

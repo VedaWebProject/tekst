@@ -41,7 +41,7 @@ const initialModel = (): NewTextModel => ({
 const router = useRouter();
 const { message } = useMessages();
 const state = useStateStore();
-const { pfData, loadPlatformData } = usePlatformData();
+const { pfData, patchPfData } = usePlatformData();
 const model = ref<Record<string, any>>(initialModel());
 const formRef = ref<FormInst | null>(null);
 const loading = ref(false);
@@ -72,15 +72,17 @@ async function handleSave() {
           response,
         } = await POST('/texts', { body: model.value as TextCreate });
         if (!error) {
-          await loadPlatformData();
-          state.text = pfData.value?.texts.find((t) => t.slug === createdText.slug) || state.text;
+          patchPfData({
+            texts: [...(pfData.value?.texts || []), createdText],
+          });
+          state.text = createdText || state.text;
           router.push({ name: 'adminTextsGeneral', params: { text: createdText.slug } });
           message.success($t('admin.newText.msgSaveSuccess', { title: createdText.title }));
         } else {
           if (response.status === 409) {
             message.error($t('errors.conflict'));
           } else {
-            message.error($t('errors.unexpected'), error.detail?.toString());
+            message.error($t('errors.unexpected'), error);
           }
         }
       })
@@ -95,12 +97,12 @@ async function handleSave() {
 
 <template>
   <IconHeading level="1" :icon="AddCircleOutlineRound">
-    {{ $t('admin.heading') }}: {{ $t('admin.newText.heading') }}
+    {{ $t('admin.newText.heading') }}
     <HelpButtonWidget help-key="adminNewTextView" />
   </IconHeading>
 
-  <n-alert :title="$t('general.info')" type="info">
-    {{ $t('admin.newText.headerInfoMsg') }}
+  <n-alert :title="$t('general.info')" type="info" closable>
+    {{ $t('admin.newText.headerInfoAlert') }}
   </n-alert>
 
   <div class="content-block">

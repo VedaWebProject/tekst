@@ -14,13 +14,14 @@ declare module 'vue-router' {
   }
 }
 
-const HomeView = () => import('@/views/HomeView.vue');
 const UserView = () => import('@/views/UserView.vue');
 const HelpView = () => import('@/views/HelpView.vue');
 const BrowseView = () => import('@/views/BrowseView.vue');
 const SearchView = () => import('@/views/SearchView.vue');
 const RegisterView = () => import('@/views/RegisterView.vue');
-const PageView = () => import('@/views/PageView.vue');
+const InfoPageView = () => import('@/views/InfoPageView.vue');
+const DataLayersView = () => import('@/views/DataLayersView.vue');
+const DataLayerEditView = () => import('@/views/DataLayerEditView.vue');
 
 const AccountView = () => import('@/views/account/AccountView.vue');
 const AccountManageView = () => import('@/views/account/AccountManageView.vue');
@@ -29,15 +30,16 @@ const ResetView = () => import('@/views/ResetView.vue');
 
 const AdminView = () => import('@/views/admin/AdminView.vue');
 const AdminStatisticsView = () => import('@/views/admin/AdminStatisticsView.vue');
-const AdminUsersView = () => import('@/views/admin/AdminUsersView.vue');
+const AdminSystemUsersView = () => import('@/views/admin/AdminSystemUsersView.vue');
 const AdminTextsView = () => import('@/views/admin/AdminTextsView.vue');
 const AdminTextsGeneralView = () => import('@/views/admin/AdminTextsGeneralView.vue');
 const AdminTextsLevelsView = () => import('@/views/admin/AdminTextsLevelsView.vue');
 const AdminTextsNodesView = () => import('@/views/admin/AdminTextsNodesView.vue');
 const AdminNewTextView = () => import('@/views/admin/AdminNewTextView.vue');
 const AdminSystemView = () => import('@/views/admin/AdminSystemView.vue');
+const AdminSystemSettingsView = () => import('@/views/admin/AdminSystemSettingsView.vue');
 const AdminSystemSegmentsView = () => import('@/views/admin/AdminSystemSegmentsView.vue');
-const AdminSystemPagesView = () => import('@/views/admin/AdminSystemPagesView.vue');
+const AdminSystemInfoPagesView = () => import('@/views/admin/AdminSystemInfoPagesView.vue');
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,7 +48,11 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: InfoPageView,
+      props: {
+        pageKey: 'systemHome',
+        icon: InfoOutlined,
+      },
     },
     {
       path: '/browse/:text?',
@@ -77,7 +83,7 @@ const router = createRouter({
     {
       path: '/site-notice',
       name: 'siteNotice',
-      component: PageView,
+      component: InfoPageView,
       props: {
         pageKey: 'systemSiteNotice',
         icon: GavelOutlined,
@@ -86,16 +92,16 @@ const router = createRouter({
     {
       path: '/privacy-policy',
       name: 'privacyPolicy',
-      component: PageView,
+      component: InfoPageView,
       props: {
         pageKey: 'systemPrivacyPolicy',
         icon: PrivacyTipOutlined,
       },
     },
     {
-      path: '/page',
-      name: 'page',
-      component: PageView,
+      path: '/info/:p',
+      name: 'info',
+      component: InfoPageView,
       props: {
         icon: InfoOutlined,
       },
@@ -116,7 +122,27 @@ const router = createRouter({
       component: ResetView,
     },
     {
+      path: '/layers/:text',
+      name: 'dataLayers',
+      component: DataLayersView,
+      meta: {
+        isTextSpecific: true,
+        restricted: 'user',
+      },
+    },
+    {
+      path: '/layers/:text/edit/:id',
+      name: 'dataLayerEdit',
+      component: DataLayerEditView,
+      meta: {
+        isTextSpecific: true,
+        restricted: 'user',
+      },
+    },
+    {
       path: '/account',
+      name: 'account',
+      redirect: { name: 'accountProfile' },
       component: AccountView,
       meta: {
         restricted: 'user',
@@ -147,11 +173,6 @@ const router = createRouter({
           path: 'statistics',
           name: 'adminStatistics',
           component: AdminStatisticsView,
-        },
-        {
-          path: 'users',
-          name: 'adminUsers',
-          component: AdminUsersView,
         },
         {
           path: 'texts/:text',
@@ -187,18 +208,28 @@ const router = createRouter({
         {
           path: 'system',
           name: 'adminSystem',
-          redirect: { name: 'adminSystemPages' },
+          redirect: { name: 'adminSystemSettings' },
           component: AdminSystemView,
           children: [
             {
+              path: 'settings',
+              name: 'adminSystemSettings',
+              component: AdminSystemSettingsView,
+            },
+            {
               path: 'pages',
-              name: 'adminSystemPages',
-              component: AdminSystemPagesView,
+              name: 'adminSystemInfoPages',
+              component: AdminSystemInfoPagesView,
             },
             {
               path: 'segments',
               name: 'adminSystemSegments',
               component: AdminSystemSegmentsView,
+            },
+            {
+              path: 'users',
+              name: 'adminSystemUsers',
+              component: AdminSystemUsersView,
             },
           ],
         },

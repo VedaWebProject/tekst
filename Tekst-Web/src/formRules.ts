@@ -261,7 +261,7 @@ export const systemSegmentFormRules: Record<string, FormItemRule[]> = {
   ],
 };
 
-export const pageSegmentFormRules: Record<string, FormItemRule[]> = {
+export const infoSegmentFormRules: Record<string, FormItemRule[]> = {
   title: [
     {
       validator: (rule: FormItemRule, value: string) => !value || value.length <= 32,
@@ -302,6 +302,159 @@ export const pageSegmentFormRules: Record<string, FormItemRule[]> = {
       validator: (rule: FormItemRule, value: string) =>
         !!value && value.length >= 1 && value.length <= 1048576,
       message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 1048576 }),
+      trigger: 'blur',
+    },
+  ],
+};
+
+export const platformSettingsFormRules: Record<string, FormItemRule[]> = {
+  infoPlatformName: [
+    {
+      required: true,
+      message: () =>
+        $t('forms.rulesFeedback.isRequired', {
+          x: $t('models.platformSettings.infoPlatformName'),
+        }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !!value && value.length >= 1 && value.length <= 32,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 32 }),
+      trigger: 'blur',
+    },
+  ],
+  infoDescription: [
+    {
+      validator: (rule: FormItemRule, value: string) => !value || value.length <= 128,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 0, max: 128 }),
+      trigger: 'blur',
+    },
+  ],
+  infoTerms: [
+    {
+      validator: (rule: FormItemRule, value: string) => !value || value.length <= 512,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 0, max: 512 }),
+      trigger: 'blur',
+    },
+  ],
+  infoContactName: [
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !value || (value.length >= 1 && value.length <= 64),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 64 }),
+      trigger: 'blur',
+    },
+  ],
+  infoContactEmail: [
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !value || (value.length >= 1 && value.length <= 64),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 64 }),
+      trigger: 'blur',
+    },
+  ],
+  infoContactUrl: [
+    {
+      validator: (rule: FormItemRule, value: string) => !value || value.length <= 512,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 0, max: 512 }),
+      trigger: 'blur',
+    },
+  ],
+  defaultTextId: [
+    {
+      required: true,
+      message: () =>
+        $t('forms.rulesFeedback.isRequired', { x: $t('models.platformSettings.defaultTextId') }),
+      trigger: 'blur',
+    },
+  ],
+};
+
+export const layerFormRules: Record<string, FormItemRule[]> = {
+  title: [
+    {
+      required: true,
+      message: () =>
+        $t('forms.rulesFeedback.isRequired', {
+          x: $t('models.layer.title'),
+        }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !!value && value.length >= 1 && value.length <= 64,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 64 }),
+      trigger: 'blur',
+    },
+  ],
+  description: [
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !value || (value.length >= 1 && value.length <= 512),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 512 }),
+      trigger: 'blur',
+    },
+  ],
+  shared_read: [
+    {
+      validator: (rule: FormItemRule, value: string) => Array.isArray(value),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 512 }),
+      trigger: 'blur',
+    },
+  ],
+  shared_write: [
+    {
+      validator: (rule: FormItemRule, value: string) => Array.isArray(value),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 512 }),
+      trigger: 'blur',
+    },
+  ],
+  citation: [
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !value || (value.length >= 1 && value.length <= 1000),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 1000 }),
+      trigger: 'blur',
+    },
+  ],
+  comment: [
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !value || (value.length >= 1 && value.length <= 1000),
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 1000 }),
+      trigger: 'blur',
+    },
+  ],
+  metaKey: [
+    {
+      required: true,
+      message: () =>
+        $t('forms.rulesFeedback.isRequired', {
+          x: $t('models.meta.key'),
+        }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !!value && value.length >= 1 && value.length <= 16,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 16 }),
+      trigger: 'blur',
+    },
+  ],
+  metaValue: [
+    {
+      required: true,
+      message: () =>
+        $t('forms.rulesFeedback.isRequired', {
+          x: $t('models.meta.value'),
+        }),
+      trigger: 'blur',
+    },
+    {
+      validator: (rule: FormItemRule, value: string) =>
+        !!value && value.length >= 1 && value.length <= 128,
+      message: () => $t('forms.rulesFeedback.minMaxChars', { min: 1, max: 128 }),
       trigger: 'blur',
     },
   ],

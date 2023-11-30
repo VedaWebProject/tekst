@@ -1,16 +1,35 @@
 from datetime import datetime
-from typing import Annotated, Any, Dict, Literal  # noqa: UP035
+from typing import Annotated, Any, Literal, Optional  # noqa: UP035
 
 from beanie import (
     Document,
     PydanticObjectId,
 )
 from humps import camelize, decamelize
-from pydantic import BaseModel, ConfigDict, HttpUrl, PlainSerializer, create_model
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    PlainSerializer,
+    StringConstraints,
+    create_model,
+)
+from typing_extensions import TypedDict
 
 
-# type alias for a flat dict of arbitrary metadata
-Metadata = Dict[str, str]  # noqa: UP006
+# class for one arbitrary metadate
+class Metadate(TypedDict):
+    key: Annotated[str, StringConstraints(min_length=1, max_length=16)]
+    value: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+
+
+# type alias for collection of arbitrary metadata
+Metadata = Annotated[
+    list[Metadate] | None,
+    Field(description="Arbitrary metadata", min_length=0, max_length=64),
+]
+
 
 # type alias for available locale identifiers
 Locale = Literal["deDE", "enUS"]
@@ -44,16 +63,6 @@ class DocumentBase(ModelTransformerMixin, Document):
             return camelize(super().model_dump(**kwargs))
         return super().model_dump(**kwargs)
 
-    def restricted_fields(self, user_id: str = None) -> dict:
-        """
-        This may or may not be overridden to define access-restricted fields
-        that should be excluded from .model_dump() and .model_dump_json() calls based on
-        the given user ID trying to access data.
-        IMPORTANT: We have to use snake_cased field names in the output dict!
-        Not the camelCased aliases!
-        """
-        return None
-
     async def insert(self, **kwargs):
         self.id = None  # reset ID for new document in case one is already set
         return await super().insert(**kwargs)
@@ -67,6 +76,7 @@ class DocumentBase(ModelTransformerMixin, Document):
 
 
 class ReadBase:
+    model_config = ConfigDict(extra="allow")
     id: PydanticObjectId
 
 
@@ -88,45 +98,46 @@ class ModelFactoryMixin:
         return (bases,) if type(bases) is not tuple else bases
 
     @classmethod
-    def get_document_model(cls, bases: type | tuple[type] = (DocumentBase,)) -> type:
+    def document_model(cls, bases: type | tuple[type] = (DocumentBase,)) -> type:
         if not cls._document_model or not cls._is_origin_cls("_document_model"):
-            cls._document_model = type(
+            cls._document_model = create_model(
                 f"{cls.__name__}Document",
-                (cls, *cls._to_bases_tuple(bases)),
-                {"__module__": f"{cls.__module__}"},
+                __base__=(cls, *cls._to_bases_tuple(bases)),
+                __module__=cls.__module__,
             )
         return cls._document_model
 
     @classmethod
-    def get_create_model(cls) -> type[ModelBase]:
+    def create_model(cls) -> type[ModelBase]:
         if not cls._create_model or not cls._is_origin_cls("_create_model"):
             cls._create_model = create_model(
                 f"{cls.__name__}Create",
                 __base__=cls,
-                __module__=cls.__name__,
+                __module__=cls.__module__,
             )
         return cls._create_model
 
     @classmethod
-    def get_read_model(cls, bases: type | tuple[type] = (ReadBase,)) -> type[ReadBase]:
+    def read_model(cls, bases: type | tuple[type] = (ReadBase,)) -> type[ReadBase]:
         if not cls._read_model or not cls._is_origin_cls("_read_model"):
-            cls._read_model = type(
+            cls._read_model = create_model(
                 f"{cls.__name__}Read",
-                (cls, *cls._to_bases_tuple(bases)),
-                {"__module__": f"{cls.__module__}"},
+                __base__=(cls, *cls._to_bases_tuple(bases)),
+                __module__=cls.__module__,
             )
         return cls._read_model
 
     @classmethod
-    def get_update_model(cls, bases: type | tuple[type] = ()) -> type[ModelBase]:
+    def update_model(cls, bases: type | tuple[type] = ()) -> type[ModelBase]:
         if not cls._update_model or not cls._is_origin_cls("_update_model"):
             fields = {}
             for k, v in cls.model_fields.items():
-                fields[k] = (v.annotation, None)
+                if not str(k).endswith("_type") and v.is_required():
+                    fields[k] = (Optional[v.annotation], None)  # noqa: UP007
             cls._update_model = create_model(
                 f"{cls.__name__}Update",
                 __base__=(cls, *cls._to_bases_tuple(bases)),
-                __module__=cls.__name__,
+                __module__=cls.__module__,
                 **fields,
             )
         return cls._update_model

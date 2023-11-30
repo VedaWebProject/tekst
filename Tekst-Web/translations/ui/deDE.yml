@@ -1,6 +1,6 @@
 general:
   welcome: Willkommen, {name}!
-  welcomeTest: '"Willkommen!", sagt der Client.'
+  general: Allgemein
   tipThemeToggleLight: Zu hellem Farbschema wechseln
   tipThemeToggleDark: Zu dunklem Farbschema wechseln
   yesAction: 'Ja'
@@ -15,6 +15,7 @@ general:
   insertAction: Einfügen
   removeAction: Entfernen
   deleteAction: Löschen
+  editAction: Bearbeiten
   quickSearch: Schnellsuche
   textSelect: Wählen Sie den Text, mit dem Sie arbeiten möchten
   info: Information
@@ -24,29 +25,14 @@ general:
   selected: ausgewählt
   flags: Merkmale
   language: Sprache
-
-dummy:
-  home: 'Kein Ort ist wie ~'
-  schiller: |
-    Schön wie Engel, voll Walhallas Wonne,
-    Schön vor allen Jünglingen war er,
-    Himmlisch mild sein Blick wie Maiensonne,
-    Rückgestrahlt vom blauen Spiegelmeer.
-
-    Seine Küsse - paradiesisch Fühlen!
-    Wie zwo Flammen sich ergreifen, wie
-    Harfentöne ineinanderspielen
-    Zu der himmelvollen Harmonie -
-
-    Stürzten, flogen, schmolzen Geist und Geist zusammen,
-    Lippen, Wangen brannten, zitterten,
-    Seele rann in Seele - Erd und Himmel schwammen
-    Wie zerronnen um die Liebenden!
-
-    Er ist hin - vergebens, ach vergebens
-    Stöhnet ihm der bange Seufzer nach!
-    Er ist hin, und alle Lust des Lebens
-    Wimmert hin in ein verlornes Ach!
+  platform: Plattform
+  not: nicht
+  areYouSureHelpTextHint: |
+    Bitte vergewissern Sie sich, dass Sie die entsprechende Passage in den
+    Hilfetexten zu diesem Thema gelesen und verstanden haben.
+    Sie finden die Hilfetexte zu jeder Seite, indem Sie auf das kleine '?'-Symbol
+    neben der Überschrift der jeweiligen Seite klicken.
+    Sind Sie sicher, dass Sie fortfahren möchten?
 
 i18n:
   tipSwitcher: Gebietsschema auswählen (Sprache und Zahlen-/Datumsformat)
@@ -59,7 +45,7 @@ init:
   serverI18n: Lade UI-Übersetzungen...
   platformData: Lade Plattformdaten...
   workingText: Lege Arbeitstext fest...
-  systemSegments: Füge Systemsegmente ein...
+  systemSegments: Füge Seitensegmente ein...
 
 errors:
   error: Fehler
@@ -80,7 +66,7 @@ nav:
   browse: Blättern
   search: Suche
   help: Hilfe
-  more: Mehr
+  info: Info
 
 routes:
   pageTitle:
@@ -90,17 +76,19 @@ routes:
     help: Hilfe
     login: Anmeldung
     register: Registrierung
+    dataLayers: Datenschichten zu "{text}"
+    dataLayerEdit: Datenschicht bearbeiten
     user: Profil von {username}
     accountProfile: Öffentliches Profil
     accountManage: Konto
     adminStatistics: '@:admin.heading - Statistiken'
-    adminUsers: '@:admin.heading - Benutzer'
+    adminSystemUsers: '@:admin.heading - Benutzer'
     adminTextsGeneral: '@:admin.heading - {text}: Allgemein'
     adminTextsLevels: '@:admin.heading - {text}: Ebenen'
     adminTextsNodes: '@:admin.heading - {text}: Knoten'
     adminNewText: '@:admin.heading - Neuer Text'
     adminSystemSegments: '@:admin.heading - Segmente'
-    adminSystemPages: '@:admin.heading - Seiten'
+    adminSystemInfoPages: '@:admin.heading - Info-Seiten'
     verify: Verifizierung
     reset: Passwort zurücksetzen
     siteNotice: '@:admin.system.segments.systemKeys.systemSiteNotice'
@@ -111,10 +99,10 @@ layerTypes:
 
 browse:
   location:
-    modalHeading: Ebene/Fundstelle
+    modalHeading: Fundstelle
     level: Ebene
   toolbar:
-    tipSelectLocation: Ebene/Fundstelle wählen
+    tipSelectLocation: Ebene und Fundstelle wählen
     tipPreviousLocation: Vorherige Fundstelle auf dieser Ebene
     tipNextLocation: Nächste Fundstelle auf dieser Ebene
     tipReducedView: Reduzierte Leseansicht umschalten
@@ -179,7 +167,7 @@ models:
     isInactive: inaktiv
     isVerified: verifiziert
     isUnverified: unverifiziert
-    isSuperuser: Admin
+    isSuperuser: Administrator
     formRulesFeedback:
       emailInvalid: '@:models.user.email ist zu offensichtlich ungültig'
       usernameChars: 'Erlaubte Zeichen: a-z, A-Z, 0-9 und - _'
@@ -207,9 +195,18 @@ models:
     label: Bezeichnung
   layer:
     modelLabel: Datenschicht | Datenschichten
-    layerType: Datenschicht-Typ
-    comment: Kommentar
+    title: Titel
+    description: Beschreibung
+    level: Ebene
+    layerType: Datenschichttyp
+    public: öffentlich
+    proposed: vorgeschlagen für Veröffentlichung
     citation: Zitation
+    comment: Kommentar
+    share: Zugriff teilen
+    sharedRead: Lesezugriff teilen
+    sharedWrite: Schreibzugriff teilen
+    config: Konfiguration
   unit:
     modelLabel: Dateneinheit | Dateneinheiten
   meta:
@@ -218,8 +215,19 @@ models:
     year: Jahr
     language: Sprache
     layerType: '@:models.layer.layerType'
-    providedBy: Bereitgestellt von
     onLevel: auf Ebene "{level}"
+    key: Metadatum-Schlüssel
+    value: Metadatum-Wert
+  platformSettings:
+    infoPlatformName: Name der Plattform
+    infoDescription: Kurzbeschreibung der Plattform
+    infoTerms: API Nutzungsbedingungen (URL)
+    infoContactName: Name Kontaktperson
+    infoContactEmail: Email Kontaktperson
+    infoContactUrl: URL Kontaktperson
+    defaultText: Standard-Text
+    showHeaderInfo: Kurzbeschreibung in Kopfzeile anzeigen
+    showFooterInfo: Name und Kurzbeschreibung in Fußzeile anzeigen
   segment:
     modelLabel: Segment
     key: Schlüssel
@@ -230,13 +238,53 @@ models:
       keyChars: 'Erlaubte Zeichen: a-z, A-Z, 0-9, -, _'
       systemPrefixReserved: Schlüssel-Praefix "system" ist reserviert für Systemsegmente
 
+dataLayers:
+  heading: Datenschichten
+  ownedByMe: von mir
+  ownedByOthers: von anderen
+  public: '@:models.layer.public'
+  notPublic: '@:general.not @:models.layer.public'
+  proposed: '@:models.layer.proposed'
+  notProposed: '@:general.not @:models.layer.proposed'
+  proposeAction: Für Veröffentlichung vorschlagen
+  unproposeAction: Veröffentlichungsvorschlag zurücknehmen
+  publishAction: Veröffentlichen
+  unpublishAction: Veröffentlichung aufheben
+  warnPropose: |
+    Sie sind dabei, Ihre Datenschicht zur Veröffentlichung vorzuschlagen.
+    Es ist sehr wichtig, dass Sie die Auswirkungen eines
+    Veröffentlichungsvorschlags verstehen.
+  warnUnpropose: |
+    Sind Sie sicher, dass Sie Ihren Veröffentlichungsvorschlag
+    für diese Datenschicht zurückziehen wollen?
+  warnPublish: |
+    Sie sind im Begriff, diese Datenschicht für die Öffentlichkeit
+    (nicht registrierte Benutzer) zu veröffentlichen. Es ist sehr wichtig,
+    dass Sie sich über die Auswirkungen der Veröffentlichung
+    von Datenschichten im Klaren sind.
+  warnUnpublish: |
+    Sind Sie sicher, dass Sie die Veröffentlichung dieser
+    Datenschicht zurückziehen wollen?
+  warnDelete: |
+    Sind Sie sicher, dass Sie diese Datenschicht und alle
+    mit ihr verbundenen Daten löschen wollen?
+  msgProposed: Die Datenschicht "{title}" wurde zur Veröffentlichung vorgeschlagen.
+  msgUnproposed: Die Veröffentlichungsvorschlag für die Datenschicht "{title}" wurde zurückgezogen.
+  msgPublished: Die Datenschicht "{title}" wurde veröffentlicht.
+  msgUnpublished: Die Veröffentlichung der Datenschicht "{title}" wurde aufgehoben.
+  msgDeleted: Die Datenschicht "{title}" wurde gelöscht.
+  edit:
+    heading: Datenschicht bearbeiten
+    backToOverview: Zurück zur Datenschichten-Übersicht
+    onlyForUnpublished: (nur für nicht veröffentlichte Datenschichten)
+    msgSaved: Ihre Änderungen an der Datenschicht "{title}" wurden gespeichert.
+
 account:
   account: Konto
   session: Sitzung
-  currentSession: Aktuelle @:account.session
   loginBtn: Anmelden
   logoutBtn: Abmelden
-  profile: Öffentliches Profil
+  profile: Profil
   profileHeading: '{username}: Öffentliches Profil'
   profileNotFound: Das Benutzerprofil "{username}" konnte nicht gefunden werden.
   profileFieldNotPublic: nicht öffentlich
@@ -403,7 +451,7 @@ admin:
         msgError: 'Fehler beim Hochladen und Verarbeiten der Textstruktur'
   newText:
     heading: Neuer Text
-    headerInfoMsg: |
+    headerInfoAlert: |
       Hier können Sie einen neuen Text anlegen. Dafür müssen Sie nur die grundlegendsten Angaben machen.
       Zunächst wird der Text nicht öffentlich gelistet und ist nur für Administratoren zugänglich.
       Sie werden im Anschluss zu einer Ansicht weitergeleitet, in der Sie weitere Einstellungen vornehmen können,
@@ -413,9 +461,20 @@ admin:
     msgSaveSuccess: Der neue Text "{title}" wurde erfolgreich erstellt. Sie können jetzt Einstellungen dafür vornehmen.
   system:
     heading: System
+    platformSettings:
+      heading: Einstellungen
+      headingInfo: Informationen
+      headingOptions: Optionen
+      msgSaved: |
+        Plattform-Einstellungen gespeichert.
+        Bitte beachten Sie, dass es bis zu einer Minute dauern kann,
+        bis die Änderungen sich auf spätere Anfragen auswirken.
+      defaultTextPlaceholder: Automatisch
+      formLabelDisplay: Darstellung
     segments:
-      heading: Segmente
+      heading: Seitensegmente
       systemKeys:
+        systemHome: Startseite
         systemHeadEnd: Ende von HTML head
         systemBodyEnd: Ende von HTML body
         systemFooter: Fußzeile
@@ -429,8 +488,8 @@ admin:
       msgDeleted: '"{title}" wurde gelöscht.'
       warnCancel: Alle ungespeicherten Änderungen gehen verloren. Sind sie sicher?
       warnDelete: Sind Sie sicher, dass Sie "{title}" löschen möchten?
-    pages:
-      heading: Seiten
+    infoPages:
+      heading: Info-Seiten
       newPage: Neue Seite
       phSelectPage: Seite auswählen
 

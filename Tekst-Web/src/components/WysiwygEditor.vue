@@ -4,6 +4,7 @@ import { NSelect, NButton, NIcon, type SelectOption } from 'naive-ui';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
+import CharacterCount from '@tiptap/extension-character-count';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import PromptModal from './PromptModal.vue';
@@ -32,12 +33,14 @@ import ImageOutlined from '@vicons/material/ImageOutlined';
 
 const props = withDefaults(
   defineProps<{
-    value?: string;
+    value?: string | null;
     toolbarSize?: 'small' | 'medium' | 'large';
+    maxChars?: number;
   }>(),
   {
     value: '',
     toolbarSize: 'small',
+    maxChars: undefined,
   }
 );
 
@@ -69,6 +72,10 @@ const editor = useEditor({
     Image.configure({
       inline: true,
       allowBase64: true,
+    }),
+    CharacterCount.configure({
+      limit: props.maxChars,
+      mode: 'textSize',
     }),
   ],
   injectCSS: false,
@@ -253,6 +260,7 @@ onUnmounted(() => {
         :options="blockTypeOptions"
         :size="toolbarSize"
         :consistent-menu-width="false"
+        status="success"
         :render-label="renderBlockTypeOption"
         style="width: auto; min-width: 320px; flex-grow: 2"
         @update:value="handleSelectBlockType"
@@ -265,6 +273,7 @@ onUnmounted(() => {
           :disabled="!editor.can().chain().focus().toggleBold().run()"
           :type="(editor.isActive('bold') && 'primary') || undefined"
           :render-icon="renderToolbarIcon(FormatBoldOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().toggleBold().run()"
         />
         <n-button
@@ -274,6 +283,7 @@ onUnmounted(() => {
           :disabled="!editor.can().chain().focus().toggleItalic().run()"
           :type="(editor.isActive('italic') && 'primary') || undefined"
           :render-icon="renderToolbarIcon(FormatItalicOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().toggleItalic().run()"
         />
       </div>
@@ -284,6 +294,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.link')"
           :type="(editor.isActive('link') && 'primary') || undefined"
           :render-icon="renderToolbarIcon(InsertLinkOutlined)"
+          :focusable="false"
           @click="handleAddLinkClick"
         />
         <n-button
@@ -293,6 +304,7 @@ onUnmounted(() => {
           :disabled="!editor.can().chain().focus().toggleCode().run()"
           :type="(editor.isActive('code') && 'primary') || undefined"
           :render-icon="renderToolbarIcon(CodeOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().toggleCode().run()"
         />
       </div>
@@ -302,6 +314,7 @@ onUnmounted(() => {
           :size="toolbarSize"
           :title="$t('wysiwyg.clearFormat')"
           :render-icon="renderToolbarIcon(FormatClearOutlined)"
+          :focusable="false"
           @click="
             () => {
               editor?.chain().focus().unsetAllMarks().run();
@@ -317,6 +330,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.alignLeft')"
           :render-icon="renderToolbarIcon(FormatAlignLeftOutlined)"
           :type="(editor.isActive({ textAlign: 'left' }) && 'primary') || undefined"
+          :focusable="false"
           @click="editor.chain().focus().setTextAlign('left').run()"
         />
         <n-button
@@ -325,6 +339,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.alignCenter')"
           :render-icon="renderToolbarIcon(FormatAlignCenterOutlined)"
           :type="(editor.isActive({ textAlign: 'center' }) && 'primary') || undefined"
+          :focusable="false"
           @click="editor.chain().focus().setTextAlign('center').run()"
         />
         <n-button
@@ -333,6 +348,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.alignRight')"
           :render-icon="renderToolbarIcon(FormatAlignRightOutlined)"
           :type="(editor.isActive({ textAlign: 'right' }) && 'primary') || undefined"
+          :focusable="false"
           @click="editor.chain().focus().setTextAlign('right').run()"
         />
         <n-button
@@ -341,6 +357,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.alignJustify')"
           :render-icon="renderToolbarIcon(FormatAlignJustifyOutlined)"
           :type="(editor.isActive({ textAlign: 'justify' }) && 'primary') || undefined"
+          :focusable="false"
           @click="editor.chain().focus().setTextAlign('justify').run()"
         />
       </div>
@@ -350,6 +367,7 @@ onUnmounted(() => {
           :size="toolbarSize"
           :title="$t('wysiwyg.horizontalRule')"
           :render-icon="renderToolbarIcon(HorizontalRuleOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().setHorizontalRule().run()"
         />
         <n-button
@@ -357,6 +375,7 @@ onUnmounted(() => {
           :size="toolbarSize"
           :title="$t('wysiwyg.image')"
           :render-icon="renderToolbarIcon(ImageOutlined)"
+          :focusable="false"
           @click="handleAddImageClick"
         />
         <n-button
@@ -364,6 +383,7 @@ onUnmounted(() => {
           :size="toolbarSize"
           :title="$t('wysiwyg.hardBreak')"
           :render-icon="renderToolbarIcon(KeyboardReturnOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().setHardBreak().run()"
         />
       </div>
@@ -374,6 +394,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.undo')"
           :disabled="!editor.can().chain().focus().undo().run()"
           :render-icon="renderToolbarIcon(UndoOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().undo().run()"
         />
         <n-button
@@ -382,6 +403,7 @@ onUnmounted(() => {
           :title="$t('wysiwyg.redo')"
           :disabled="!editor.can().chain().focus().redo().run()"
           :render-icon="renderToolbarIcon(RedoOutlined)"
+          :focusable="false"
           @click="editor.chain().focus().redo().run()"
         />
       </div>
@@ -398,6 +420,7 @@ onUnmounted(() => {
     >
       <editor-content :editor="editor" />
     </div>
+    <div v-if="editor" class="character-count">{{ editor.getHTML().length }} / {{ maxChars }}</div>
   </div>
   <PromptModal />
 </template>
@@ -419,5 +442,11 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: nowrap;
   gap: 0.4rem;
+}
+
+.character-count {
+  text-align: right;
+  font-size: var(--app-ui-font-size-tiny);
+  color: var(--text-color);
 }
 </style>

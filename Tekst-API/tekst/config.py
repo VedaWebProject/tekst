@@ -5,12 +5,15 @@ from secrets import token_hex
 from typing import Annotated
 from urllib.parse import quote
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, StringConstraints, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from tekst import pkg_meta
 from tekst.models.common import CustomHttpUrl
 from tekst.utils.strings import safe_name
+
+
+_DEV_MODE: bool = bool(os.environ.get("TEKST_DEV_MODE", False))
 
 
 def _select_env_files() -> list[str]:
@@ -44,7 +47,7 @@ def _select_env_files() -> list[str]:
     # prio logic
     if os.path.exists(f_env):
         env_files.append(f_env)
-    if os.environ.get("TEKST_DEV_MODE") and os.path.exists(f_env_dev):
+    if _DEV_MODE and os.path.exists(f_env_dev):
         env_files.append(f_env_dev)
     if f_env_prod and os.path.exists(f_env_prod):
         env_files.append(f_env_prod)
@@ -61,7 +64,7 @@ class TekstConfig(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="TEKST_",
         case_sensitive=False,
-        secrets_dir="/run/secrets",
+        secrets_dir="/run/secrets" if not _DEV_MODE else None,
     )
 
     # basics
@@ -125,12 +128,24 @@ class TekstConfig(BaseSettings):
     doc_redoc_url: str = "/redoc"
 
     # general platform information config
-    info_platform_name: str = "Tekst"
-    info_description: str = "An online text research platform"
-    info_terms: CustomHttpUrl = "https://www.example-tekst-instance.org/terms"
-    info_contact_name: str = "Rick Sanchez"
-    info_contact_url: CustomHttpUrl = "https://www.example-tekst-instance.org/contact"
-    info_contact_email: EmailStr = "rick.sanchez@example-tekst-instance.org"
+    info_platform_name: Annotated[
+        str, StringConstraints(min_length=1, max_length=32)
+    ] = "Tekst"
+    info_description: Annotated[
+        str | None, StringConstraints(max_length=128)
+    ] = "An online text research platform"
+    info_terms: Annotated[
+        CustomHttpUrl | None, StringConstraints(max_length=512)
+    ] = None
+    info_contact_name: Annotated[
+        str | None, StringConstraints(min_length=1, max_length=64)
+    ] = None
+    info_contact_email: Annotated[
+        EmailStr | None, StringConstraints(min_length=1, max_length=64)
+    ] = None
+    info_contact_url: Annotated[
+        CustomHttpUrl | None, StringConstraints(max_length=512)
+    ] = None
 
     # Tekst information config
     tekst_name: str = "Tekst"
@@ -140,23 +155,18 @@ class TekstConfig(BaseSettings):
     tekst_license: str = pkg_meta.get("license", "")
     tekst_license_url: CustomHttpUrl = pkg_meta.get("license_url", "")
 
-    @field_validator("db_host", "db_password", mode="after")
-    @classmethod
-    def url_quote(cls, v: str) -> str:
-        return quote(str(v).encode("utf8"), safe="")
-
     @field_validator("db_name", mode="after")
     @classmethod
     def generate_db_name(cls, v: str) -> str:
         return safe_name(v)
 
-    def db_get_uri(self) -> str:
-        creds = (
-            f"{self.db_user}:{self.db_password}@"
-            if self.db_user and self.db_password
-            else ""
-        )
-        return f"{self.db_protocol}://{creds}{self.db_host}:{str(self.db_port)}"
+    @computed_field
+    @property
+    def db_uri(self) -> str:
+        db_host = quote(str(self.db_host).encode("utf8"), safe="")
+        db_password = quote(str(self.db_password).encode("utf8"), safe="")
+        creds = f"{self.db_user}:{db_password}@" if self.db_user and db_password else ""
+        return f"{self.db_protocol}://{creds}{db_host}:{str(self.db_port)}"
 
     @field_validator(
         "cors_allow_origins", "cors_allow_methods", "cors_allow_headers", mode="before"

@@ -3,7 +3,7 @@ import UnitContainerHeaderWidget from '@/components/browse/UnitContainerHeaderWi
 import MergeRound from '@vicons/material/MergeRound';
 import { ref } from 'vue';
 import { NModal, NButton, NSpin } from 'naive-ui';
-import ModalButtonFooter from '@/components/ModalButtonFooter.vue';
+import ButtonFooter from '@/components/ButtonFooter.vue';
 import { GET } from '@/api';
 import { useMessages } from '@/messages';
 import { $t } from '@/i18n';
@@ -37,7 +37,7 @@ async function handleClick() {
   });
 
   if (error) {
-    message.error($t('errors.unexpected'), error.detail?.toString());
+    message.error($t('errors.unexpected'), error);
     showModal.value = false;
     loading.value = false;
     return;
@@ -91,11 +91,11 @@ async function handleClick() {
 
     <span v-else>{{ $t('errors.unexpected') }}</span>
 
-    <ModalButtonFooter>
+    <ButtonFooter>
       <n-button type="primary" @click="() => (showModal = false)">
         {{ $t('general.closeAction') }}
       </n-button>
-    </ModalButtonFooter>
+    </ButtonFooter>
   </n-modal>
 </template>
 

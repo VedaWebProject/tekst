@@ -5,9 +5,8 @@ from beanie.operators import In
 from fastapi import APIRouter, HTTPException, Query, status
 
 from tekst.auth import OptionalUserDep, UserDep
-from tekst.layer_types import layer_type_manager
+from tekst.layer_types import layer_types_mgr
 from tekst.models.layer import LayerBaseDocument
-from tekst.models.text import TextDocument
 from tekst.models.unit import UnitBase, UnitBaseDocument
 
 
@@ -21,10 +20,10 @@ def _generate_read_endpoint(
         # check if the layer this unit belongs to is readable by user
         layer_read_allowed = unit_doc and (
             await LayerBaseDocument.find(
-                LayerBaseDocument.id == unit_doc.layer_id, with_children=True
-            )
-            .find(LayerBaseDocument.allowed_to_read(user))
-            .exists()
+                LayerBaseDocument.id == unit_doc.layer_id,
+                await LayerBaseDocument.allowed_to_read(user),
+                with_children=True,
+            ).exists()
         )
         unit_doc = unit_doc if layer_read_allowed else None
         if not unit_doc:
@@ -44,14 +43,11 @@ def _generate_create_endpoint(
 ):
     async def create_unit(unit: unit_create_model, user: UserDep) -> unit_read_model:
         # check if the layer this unit belongs to is writable by user
-        layer_write_allowed = (
-            await LayerBaseDocument.find(
-                LayerBaseDocument.id == unit.layer_id, with_children=True
-            )
-            .find(LayerBaseDocument.allowed_to_write(user))
-            .exists()
-        )
-        if not layer_write_allowed:
+        if not await LayerBaseDocument.find(
+            LayerBaseDocument.id == unit.layer_id,
+            LayerBaseDocument.allowed_to_write(user),
+            with_children=True,
+        ).exists():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="No write access for units belonging to this layer",
@@ -60,7 +56,7 @@ def _generate_create_endpoint(
         if await unit_document_model.find(
             UnitDocumentModel.layer_id == unit.layer_id,
             UnitDocumentModel.node_id == unit.node_id,
-        ).first_or_none():
+        ).exists():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="The properties of this unit conflict with another unit",
@@ -118,18 +114,18 @@ router = APIRouter(
 )
 
 # dynamically add all needed routes for every layer type's units
-for lt_name, lt_class in layer_type_manager.get_all().items():
+for lt_name, lt_class in layer_types_mgr.get_all().items():
     # type alias unit models
     UnitModel = lt_class.get_unit_model()
-    UnitDocumentModel = UnitModel.get_document_model()
-    UnitCreateModel = UnitModel.get_create_model()
-    UnitReadModel = UnitModel.get_read_model()
-    UnitUpdateModel = UnitModel.get_update_model()
+    UnitDocumentModel = UnitModel.document_model()
+    UnitCreateModel = UnitModel.create_model()
+    UnitReadModel = UnitModel.read_model()
+    UnitUpdateModel = UnitModel.update_model()
     # add route for reading a unit from the database
     router.add_api_route(
         path=f"/{lt_name}/{{id}}",
         name=f"get_{lt_name}_unit",
-        description=f"Returns the data for a {lt_class.get_label()} data layer unit",
+        description=f"Returns the data for a {lt_class.get_name()} data layer unit",
         endpoint=_generate_read_endpoint(
             unit_document_model=UnitDocumentModel,
             unit_read_model=UnitReadModel,
@@ -142,7 +138,7 @@ for lt_name, lt_class in layer_type_manager.get_all().items():
     router.add_api_route(
         path=f"/{lt_name}",
         name=f"create_{lt_name}_unit",
-        description=f"Creates a {lt_class.get_label()} data layer unit",
+        description=f"Creates a {lt_class.get_name()} data layer unit",
         endpoint=_generate_create_endpoint(
             unit_document_model=UnitDocumentModel,
             unit_create_model=UnitCreateModel,
@@ -156,7 +152,7 @@ for lt_name, lt_class in layer_type_manager.get_all().items():
     router.add_api_route(
         path=f"/{lt_name}/{{id}}",
         name=f"update_{lt_name}_unit",
-        description=f"Updates the data for a {lt_class.get_label()} data layer unit",
+        description=f"Updates the data for a {lt_class.get_name()} data layer unit",
         endpoint=_generate_update_endpoint(
             unit_document_model=UnitDocumentModel,
             unit_read_model=UnitReadModel,
@@ -195,19 +191,8 @@ async def find_units(
     returned unit objects cannot be typed to their precise layer unit type.
     """
 
-    active_texts = await TextDocument.find(
-        TextDocument.is_active == True  # noqa: E712
-    ).to_list()
-
-    active_texts_restriction = (
-        {}
-        if user and user.is_superuser
-        else In(LayerBaseDocument.text_id, [text.id for text in active_texts])
-    )
-
     readable_layers = await LayerBaseDocument.find(
-        LayerBaseDocument.allowed_to_read(user),
-        active_texts_restriction,
+        await LayerBaseDocument.allowed_to_read(user),
         with_children=True,
     ).to_list()
 

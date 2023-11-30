@@ -60,7 +60,9 @@ class Text(ModelBase, ModelFactoryMixin):
             description=(
                 "Subtitle translations of this text "
                 "(if set, it must contain at least one element)"
-            )
+            ),
+            min_length=1,
+            max_length=32,
         ),
     ] = None
 
@@ -103,7 +105,7 @@ class Text(ModelBase, ModelFactoryMixin):
         Field(
             description="Accent color used for this text in the client UI",
         ),
-    ] = Color("#305D97")
+    ] = "#305D97"
 
     is_active: Annotated[
         bool,
@@ -139,9 +141,9 @@ class TextDocument(Text, DocumentBase):
         bson_encoders = {Color: lambda c: c.as_hex()}
 
 
-TextCreate = Text.get_create_model()
-TextRead = Text.get_read_model()
-TextUpdate = Text.get_update_model()
+TextCreate = Text.create_model()
+TextRead = Text.read_model()
+TextUpdate = Text.update_model()
 
 
 class Node(ModelBase, ModelFactoryMixin):
@@ -172,9 +174,9 @@ class NodeDocument(Node, DocumentBase):
         indexes = ["text_id", "parent_id", "level", "position"]
 
 
-NodeCreate = Node.get_create_model()
-NodeRead = Node.get_read_model()
-NodeUpdate = Node.get_update_model()
+NodeCreate = Node.create_model()
+NodeRead = Node.read_model()
+NodeUpdate = Node.update_model()
 
 
 class InsertLevelRequest(ModelBase):

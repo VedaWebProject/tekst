@@ -60,25 +60,6 @@ export interface paths {
     /** Get layer coverage data */
     get: operations['getLayerCoverageData'];
   };
-  '/layers/plaintext/{id}': {
-    /**
-     * Get layer
-     * @description Returns the data for a PlainText data layer
-     */
-    get: operations['getPlaintextLayer'];
-    /**
-     * Update layer
-     * @description Updates the data for a PlainText data layer
-     */
-    patch: operations['updatePlaintextLayer'];
-  };
-  '/layers/plaintext': {
-    /**
-     * Create layer
-     * @description Creates a PlainText data layer definition
-     */
-    post: operations['createPlaintextLayer'];
-  };
   '/layers': {
     /**
      * Find layers
@@ -88,10 +69,32 @@ export interface paths {
      * returned layer objects cannot be typed to their precise layer type.
      */
     get: operations['findLayers'];
+    /** Create layer */
+    post: operations['createLayer'];
   };
   '/layers/{id}': {
-    /** Get generic layer data by id */
-    get: operations['getGenericLayerDataById'];
+    /** Get layer */
+    get: operations['getLayer'];
+    /** Delete layer */
+    delete: operations['deleteLayer'];
+    /** Update layer */
+    patch: operations['updateLayer'];
+  };
+  '/layers/{id}/propose': {
+    /** Propose layer */
+    post: operations['proposeLayer'];
+  };
+  '/layers/{id}/unpropose': {
+    /** Unpropose layer */
+    post: operations['unproposeLayer'];
+  };
+  '/layers/{id}/publish': {
+    /** Publish layer */
+    post: operations['publishLayer'];
+  };
+  '/layers/{id}/unpublish': {
+    /** Unpublish layer */
+    post: operations['unpublishLayer'];
   };
   '/nodes': {
     /** Find nodes */
@@ -132,35 +135,32 @@ export interface paths {
      */
     get: operations['getPlatformData'];
   };
-  '/platform/user/{usernameOrId}': {
+  '/platform/users/{usernameOrId}': {
     /**
      * Get public user info
      * @description Returns public information on the user with the specified username or ID
      */
     get: operations['getPublicUserInfo'];
   };
-  '/platform/i18n': {
-    /**
-     * Get translations
-     * @description Returns server-managed translations.
-     */
-    get: operations['getTranslations'];
+  '/platform/users': {
+    /** Get public users */
+    get: operations['getPublicUsers'];
   };
   '/platform/settings': {
     /** Update platform settings */
     patch: operations['updatePlatformSettings'];
   };
-  '/platform/segments': {
+  '/platform/segments/{id}': {
     /** Get segment */
     get: operations['getSegment'];
-    /** Create segment */
-    post: operations['createSegment'];
-  };
-  '/platform/segments/{id}': {
     /** Delete segment */
     delete: operations['deleteSegment'];
     /** Update segment */
     patch: operations['updateSegment'];
+  };
+  '/platform/segments': {
+    /** Create segment */
+    post: operations['createSegment'];
   };
   '/texts': {
     /** Get all texts */
@@ -197,22 +197,41 @@ export interface paths {
     /** Update text */
     patch: operations['updateText'];
   };
+  '/units/debug/{id}': {
+    /**
+     * Get unit
+     * @description Returns the data for a Debug data layer unit
+     */
+    get: operations['getDebugUnit'];
+    /**
+     * Update unit
+     * @description Updates the data for a Debug data layer unit
+     */
+    patch: operations['updateDebugUnit'];
+  };
+  '/units/debug': {
+    /**
+     * Create unit
+     * @description Creates a Debug data layer unit
+     */
+    post: operations['createDebugUnit'];
+  };
   '/units/plaintext/{id}': {
     /**
      * Get unit
-     * @description Returns the data for a PlainText data layer unit
+     * @description Returns the data for a Plaintext data layer unit
      */
     get: operations['getPlaintextUnit'];
     /**
      * Update unit
-     * @description Updates the data for a PlainText data layer unit
+     * @description Updates the data for a Plaintext data layer unit
      */
     patch: operations['updatePlaintextUnit'];
   };
   '/units/plaintext': {
     /**
      * Create unit
-     * @description Creates a PlainText data layer unit
+     * @description Creates a Plaintext data layer unit
      */
     post: operations['createPlaintextUnit'];
   };
@@ -453,24 +472,350 @@ export interface components {
        * @description HTML content of this segment
        */
       html: string;
+      [key: string]: unknown;
     };
     /** ClientSegmentUpdate */
     ClientSegmentUpdate: {
       /** Key */
-      key?: string;
-      /** Issystemsegment */
+      key?: string | null;
+      /**
+       * Issystemsegment
+       * @description Whether this is a system segment (will be set automatically)
+       * @default false
+       */
       isSystemSegment?: boolean;
       /**
        * Editormode
+       * @description Last used editor mode
+       * @default wysiwyg
        * @enum {string}
        */
       editorMode?: 'wysiwyg' | 'html';
-      /** Locale */
+      /**
+       * Locale
+       * @description Locale indicating the translation language of this segment
+       */
       locale?: ('deDE' | 'enUS') | null;
-      /** Title */
+      /**
+       * Title
+       * @description Title of this segment
+       */
       title?: string | null;
       /** Html */
-      html?: string;
+      html?: string | null;
+    };
+    /** DebugLayerConfig */
+    DebugLayerConfig: {
+      deeplLinks?: components['schemas']['DeepLLinksConfig'];
+    };
+    /** DebugLayerCreate */
+    DebugLayerCreate: {
+      /**
+       * Title
+       * @description Title of this layer
+       */
+      title: string;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /**
+       * Level
+       * @description Text level this layer belongs to
+       */
+      level: number;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'debug';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['DebugLayerConfig'];
+    };
+    /** DebugLayerRead */
+    DebugLayerRead: {
+      /**
+       * Id
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      id: string;
+      /**
+       * Writable
+       * @description Whether this layer is writable for the requesting user
+       */
+      writable?: boolean | null;
+      /** @description Public user data for user owning this layer */
+      owner?: components['schemas']['UserReadPublic'] | null;
+      /**
+       * Sharedreadusers
+       * @description Public user data for users allowed to read this layer
+       */
+      sharedReadUsers?: components['schemas']['UserReadPublic'][] | null;
+      /**
+       * Sharedwriteusers
+       * @description Public user data for users allowed to write this layer
+       */
+      sharedWriteUsers?: components['schemas']['UserReadPublic'][] | null;
+      /**
+       * Title
+       * @description Title of this layer
+       */
+      title: string;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /**
+       * Level
+       * @description Text level this layer belongs to
+       */
+      level: number;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'debug';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['DebugLayerConfig'];
+      [key: string]: unknown;
+    };
+    /** DebugLayerUpdate */
+    DebugLayerUpdate: {
+      /** Title */
+      title?: string | null;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /** Level */
+      level?: number | null;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'debug';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['DebugLayerConfig'];
+    };
+    /** DebugUnitCreate */
+    DebugUnitCreate: {
+      /**
+       * Layerid
+       * @description Data layer ID
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      layerId: string;
+      /**
+       * Nodeid
+       * @description Parent text node ID
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      nodeId: string;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
+       */
+      comment?: string | null;
+      /**
+       * Text
+       * @description Text content of the debug unit
+       */
+      text?: string | null;
+    };
+    /** DebugUnitRead */
+    DebugUnitRead: {
+      /**
+       * Id
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      id: string;
+      /**
+       * Layerid
+       * @description Data layer ID
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      layerId: string;
+      /**
+       * Nodeid
+       * @description Parent text node ID
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      nodeId: string;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
+       */
+      comment?: string | null;
+      /**
+       * Text
+       * @description Text content of the debug unit
+       */
+      text?: string | null;
+      [key: string]: unknown;
+    };
+    /** DebugUnitUpdate */
+    DebugUnitUpdate: {
+      /** Layerid */
+      layerId?: string | null;
+      /** Nodeid */
+      nodeId?: string | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
+       */
+      comment?: string | null;
+      /**
+       * Text
+       * @description Text content of the debug unit
+       */
+      text?: string | null;
     };
     /** DeepLLinksConfig */
     DeepLLinksConfig: {
@@ -584,14 +929,12 @@ export interface components {
       /** Covered */
       covered: boolean;
     };
-    /** LayerTypeInfo */
-    LayerTypeInfo: {
-      /** Name */
-      name: string;
-      /** Label */
-      label: string;
-      /** Description */
-      description: string;
+    /** Metadate */
+    Metadate: {
+      /** Key */
+      key: string;
+      /** Value */
+      value: string;
     };
     /** MoveNodeRequestBody */
     MoveNodeRequestBody: {
@@ -664,216 +1007,266 @@ export interface components {
        * @description Label for identifying this text node in level context
        */
       label: string;
+      [key: string]: unknown;
     };
     /** NodeUpdate */
     NodeUpdate: {
-      /**
-       * Textid
-       * @example 5eb7cf5a86d9755df3a6c593
-       */
-      textId?: string;
-      /** Parentid */
-      parentId?: string | null;
-      /** Level */
-      level?: number;
-      /** Position */
-      position?: number;
-      /** Label */
-      label?: string;
-    };
-    /** PlainTextLayerConfig */
-    PlainTextLayerConfig: {
-      deeplLinks?: components['schemas']['DeepLLinksConfig'];
-    };
-    /** PlainTextLayerCreate */
-    PlainTextLayerCreate: {
-      /**
-       * Title
-       * @description Title of this layer
-       */
-      title: string;
-      /**
-       * Description
-       * @description Short, concise description of this data layer
-       */
-      description?: string | null;
-      /**
-       * Textid
-       * @description ID of the text this layer belongs to
-       */
-      textId?: string | null;
-      /**
-       * Level
-       * @description Text level this layer belongs to
-       */
-      level: number;
-      /**
-       * Layertype
-       * @description A string identifying one of the available layer types
-       */
-      layerType: string;
-      /**
-       * Ownerid
-       * @description User owning this layer
-       */
-      ownerId?: string | null;
-      /**
-       * Sharedread
-       * @description Users with shared read access to this layer
-       * @default []
-       */
-      sharedRead?: string[];
-      /**
-       * Sharedwrite
-       * @description Users with shared write access to this layer
-       * @default []
-       */
-      sharedWrite?: string[];
-      /**
-       * Proposed
-       * @description Whether this layer has been proposed for publication
-       * @default false
-       */
-      proposed?: boolean;
-      /**
-       * Public
-       * @description Publication status of this layer
-       * @default false
-       */
-      public?: boolean;
-      /**
-       * Citation
-       * @description Citation details for this layer
-       */
-      citation?: string | null;
-      /**
-       * Meta
-       * @description Arbitrary metadata
-       */
-      meta?: {
-        [key: string]: string;
-      } | null;
-      /**
-       * Comment
-       * @description Plaintext, potentially multiline comment on this layer
-       */
-      comment?: string | null;
-      config?: components['schemas']['PlainTextLayerConfig'];
-    };
-    /** PlainTextLayerRead */
-    PlainTextLayerRead: {
-      /**
-       * Id
-       * @example 5eb7cf5a86d9755df3a6c593
-       */
-      id: string;
-      /**
-       * Title
-       * @description Title of this layer
-       */
-      title: string;
-      /**
-       * Description
-       * @description Short, concise description of this data layer
-       */
-      description?: string | null;
-      /**
-       * Textid
-       * @description ID of the text this layer belongs to
-       */
-      textId?: string | null;
-      /**
-       * Level
-       * @description Text level this layer belongs to
-       */
-      level: number;
-      /**
-       * Layertype
-       * @description A string identifying one of the available layer types
-       */
-      layerType: string;
-      /**
-       * Ownerid
-       * @description User owning this layer
-       */
-      ownerId?: string | null;
-      /**
-       * Sharedread
-       * @description Users with shared read access to this layer
-       * @default []
-       */
-      sharedRead?: string[];
-      /**
-       * Sharedwrite
-       * @description Users with shared write access to this layer
-       * @default []
-       */
-      sharedWrite?: string[];
-      /**
-       * Proposed
-       * @description Whether this layer has been proposed for publication
-       * @default false
-       */
-      proposed?: boolean;
-      /**
-       * Public
-       * @description Publication status of this layer
-       * @default false
-       */
-      public?: boolean;
-      /**
-       * Citation
-       * @description Citation details for this layer
-       */
-      citation?: string | null;
-      /**
-       * Meta
-       * @description Arbitrary metadata
-       */
-      meta?: {
-        [key: string]: string;
-      } | null;
-      /**
-       * Comment
-       * @description Plaintext, potentially multiline comment on this layer
-       */
-      comment?: string | null;
-      config?: components['schemas']['PlainTextLayerConfig'];
-    };
-    /** PlainTextLayerUpdate */
-    PlainTextLayerUpdate: {
-      /** Title */
-      title?: string;
-      /** Description */
-      description?: string | null;
       /** Textid */
       textId?: string | null;
+      /**
+       * Parentid
+       * @description ID of parent node
+       */
+      parentId?: string | null;
       /** Level */
-      level?: number;
-      /** Layertype */
-      layerType?: string;
-      /** Ownerid */
-      ownerId?: string | null;
-      /** Sharedread */
-      sharedRead?: string[];
-      /** Sharedwrite */
-      sharedWrite?: string[];
-      /** Proposed */
-      proposed?: boolean;
-      /** Public */
-      public?: boolean;
-      /** Citation */
-      citation?: string | null;
-      /** Meta */
-      meta?: {
-        [key: string]: string;
-      } | null;
-      /** Comment */
-      comment?: string | null;
-      config?: components['schemas']['PlainTextLayerConfig'];
+      level?: number | null;
+      /** Position */
+      position?: number | null;
+      /** Label */
+      label?: string | null;
     };
-    /** PlainTextUnitCreate */
-    PlainTextUnitCreate: {
+    /** PlaintextLayerConfig */
+    PlaintextLayerConfig: {
+      deeplLinks?: components['schemas']['DeepLLinksConfig'];
+    };
+    /** PlaintextLayerCreate */
+    PlaintextLayerCreate: {
+      /**
+       * Title
+       * @description Title of this layer
+       */
+      title: string;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /**
+       * Level
+       * @description Text level this layer belongs to
+       */
+      level: number;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'plaintext';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['PlaintextLayerConfig'];
+    };
+    /** PlaintextLayerRead */
+    PlaintextLayerRead: {
+      /**
+       * Id
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      id: string;
+      /**
+       * Writable
+       * @description Whether this layer is writable for the requesting user
+       */
+      writable?: boolean | null;
+      /** @description Public user data for user owning this layer */
+      owner?: components['schemas']['UserReadPublic'] | null;
+      /**
+       * Sharedreadusers
+       * @description Public user data for users allowed to read this layer
+       */
+      sharedReadUsers?: components['schemas']['UserReadPublic'][] | null;
+      /**
+       * Sharedwriteusers
+       * @description Public user data for users allowed to write this layer
+       */
+      sharedWriteUsers?: components['schemas']['UserReadPublic'][] | null;
+      /**
+       * Title
+       * @description Title of this layer
+       */
+      title: string;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /**
+       * Level
+       * @description Text level this layer belongs to
+       */
+      level: number;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'plaintext';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['PlaintextLayerConfig'];
+      [key: string]: unknown;
+    };
+    /** PlaintextLayerUpdate */
+    PlaintextLayerUpdate: {
+      /** Title */
+      title?: string | null;
+      /**
+       * Description
+       * @description Short, concise description of this data layer
+       */
+      description?: string | null;
+      /**
+       * Textid
+       * @description ID of the text this layer belongs to
+       */
+      textId?: string | null;
+      /** Level */
+      level?: number | null;
+      /**
+       * Layertype
+       * @constant
+       */
+      layerType: 'plaintext';
+      /**
+       * Ownerid
+       * @description User owning this layer
+       */
+      ownerId?: string | null;
+      /**
+       * Sharedread
+       * @description Users with shared read access to this layer
+       * @default []
+       */
+      sharedRead?: string[];
+      /**
+       * Sharedwrite
+       * @description Users with shared write access to this layer
+       * @default []
+       */
+      sharedWrite?: string[];
+      /**
+       * Public
+       * @description Publication status of this layer
+       * @default false
+       */
+      public?: boolean;
+      /**
+       * Proposed
+       * @description Whether this layer has been proposed for publication
+       * @default false
+       */
+      proposed?: boolean;
+      /**
+       * Citation
+       * @description Citation details for this layer
+       */
+      citation?: string | null;
+      /**
+       * Meta
+       * @description Arbitrary metadata
+       */
+      meta?: components['schemas']['Metadate'][] | null;
+      /**
+       * Comment
+       * @description Plaintext, potentially multiline comment on this layer
+       */
+      comment?: string | null;
+      config?: components['schemas']['PlaintextLayerConfig'];
+    };
+    /** PlaintextUnitCreate */
+    PlaintextUnitCreate: {
       /**
        * Layerid
        * @description Data layer ID
@@ -887,20 +1280,18 @@ export interface components {
        */
       nodeId: string;
       /**
-       * Meta
-       * @description Arbitrary metadata on this layer unit
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
        */
-      meta?: {
-        [key: string]: string;
-      } | null;
+      comment?: string | null;
       /**
        * Text
        * @description Text content of the plaintext unit
        */
       text?: string | null;
     };
-    /** PlainTextUnitRead */
-    PlainTextUnitRead: {
+    /** PlaintextUnitRead */
+    PlaintextUnitRead: {
       /**
        * Id
        * @example 5eb7cf5a86d9755df3a6c593
@@ -919,35 +1310,32 @@ export interface components {
        */
       nodeId: string;
       /**
-       * Meta
-       * @description Arbitrary metadata on this layer unit
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
        */
-      meta?: {
-        [key: string]: string;
-      } | null;
+      comment?: string | null;
       /**
        * Text
        * @description Text content of the plaintext unit
        */
       text?: string | null;
+      [key: string]: unknown;
     };
-    /** PlainTextUnitUpdate */
-    PlainTextUnitUpdate: {
+    /** PlaintextUnitUpdate */
+    PlaintextUnitUpdate: {
+      /** Layerid */
+      layerId?: string | null;
+      /** Nodeid */
+      nodeId?: string | null;
       /**
-       * Layerid
-       * @example 5eb7cf5a86d9755df3a6c593
+       * Comment
+       * @description Plaintext, potentially multiline comment on this unit
        */
-      layerId?: string;
+      comment?: string | null;
       /**
-       * Nodeid
-       * @example 5eb7cf5a86d9755df3a6c593
+       * Text
+       * @description Text content of the plaintext unit
        */
-      nodeId?: string;
-      /** Meta */
-      meta?: {
-        [key: string]: string;
-      } | null;
-      /** Text */
       text?: string | null;
     };
     /**
@@ -958,12 +1346,12 @@ export interface components {
       /**
        * Tekst
        * @default {
-       *   "description": "An online text research platform",
-       *   "license": "AGPL-3.0-or-later",
-       *   "licenseUrl": "https://www.gnu.org/licenses/agpl-3.0.txt",
        *   "name": "Tekst",
        *   "version": "0.0.1",
-       *   "website": "https://github.com/VedaWebProject/Tekst-API"
+       *   "description": "An online text research platform",
+       *   "website": "https://github.com/VedaWebProject/Tekst",
+       *   "license": "AGPL-3.0-or-later",
+       *   "licenseUrl": "https://www.gnu.org/licenses/agpl-3.0.txt"
        * }
        */
       tekst?: Record<string, never>;
@@ -972,20 +1360,18 @@ export interface components {
       settings: components['schemas']['PlatformSettingsRead'];
       /**
        * @default {
-       *   "authCookieLifetime": 3600,
        *   "closedMode": false,
+       *   "usersActiveByDefault": false,
        *   "enableCookieAuth": true,
        *   "enableJwtAuth": true,
-       *   "usersActiveByDefault": false
+       *   "authCookieLifetime": 10800
        * }
        */
       security?: components['schemas']['PlatformSecurityInfo'];
-      /** Layertypes */
-      layerTypes: components['schemas']['LayerTypeInfo'][];
       /** Systemsegments */
       systemSegments: components['schemas']['ClientSegmentRead'][];
-      /** Pagesinfo */
-      pagesInfo: components['schemas']['ClientSegmentHead'][];
+      /** Infosegments */
+      infoSegments: components['schemas']['ClientSegmentHead'][];
     };
     /** PlatformSecurityInfo */
     PlatformSecurityInfo: {
@@ -1011,7 +1397,7 @@ export interface components {
       enableJwtAuth?: boolean;
       /**
        * Authcookielifetime
-       * @default 3600
+       * @default 10800
        */
       authCookieLifetime?: number;
     };
@@ -1023,67 +1409,107 @@ export interface components {
        */
       id: string;
       /**
+       * Infoplatformname
+       * @description Name of the platform
+       * @default Tekst-Dev
+       */
+      infoPlatformName?: string;
+      /**
+       * Infodescription
+       * @description Short description of the platform
+       * @default An online text research platform
+       */
+      infoDescription?: string | null;
+      /**
+       * Infoterms
+       * @description URL to page with terms and conditions for API usage
+       */
+      infoTerms?: string | null;
+      /**
+       * Infocontactname
+       * @description Platform contact name
+       */
+      infoContactName?: string | null;
+      /**
+       * Infocontactemail
+       * @description Platform contact email
+       */
+      infoContactEmail?: string | null;
+      /**
+       * Infocontacturl
+       * @description URL to page with contact info
+       */
+      infoContactUrl?: string | null;
+      /**
        * Defaulttextid
        * @description Default text to load in UI
        */
       defaultTextId?: string | null;
       /**
+       * Showheaderinfo
+       * @description Show platform description in header
+       * @default true
+       */
+      showHeaderInfo?: boolean;
+      /**
+       * Showfooterinfo
+       * @description Show platform title and description in footer
+       * @default true
+       */
+      showFooterInfo?: boolean;
+      [key: string]: unknown;
+    };
+    /** PlatformSettingsUpdate */
+    PlatformSettingsUpdate: {
+      /**
        * Infoplatformname
-       * @default Tekst-DEV
+       * @description Name of the platform
+       * @default Tekst-Dev
        */
       infoPlatformName?: string;
       /**
        * Infodescription
+       * @description Short description of the platform
        * @default An online text research platform
        */
-      infoDescription?: string;
+      infoDescription?: string | null;
       /**
        * Infoterms
-       * @default https://www.example-tekst-instance.org/terms
+       * @description URL to page with terms and conditions for API usage
        */
-      infoTerms?: string;
+      infoTerms?: string | null;
       /**
        * Infocontactname
-       * @default Rick Sanchez
+       * @description Platform contact name
        */
-      infoContactName?: string;
-      /**
-       * Infocontacturl
-       * @default https://www.example-tekst-instance.org/contact
-       */
-      infoContactUrl?: string;
+      infoContactName?: string | null;
       /**
        * Infocontactemail
-       * Format: email
-       * @default rick.sanchez@example-tekst-instance.org
+       * @description Platform contact email
        */
-      infoContactEmail?: string;
-    };
-    /** PlatformSettingsUpdate */
-    PlatformSettingsUpdate: {
-      /** Defaulttextid */
+      infoContactEmail?: string | null;
+      /**
+       * Infocontacturl
+       * @description URL to page with contact info
+       */
+      infoContactUrl?: string | null;
+      /**
+       * Defaulttextid
+       * @description Default text to load in UI
+       */
       defaultTextId?: string | null;
-      /** Infoplatformname */
-      infoPlatformName?: string;
-      /** Infodescription */
-      infoDescription?: string;
       /**
-       * Infoterms
-       * Format: uri
+       * Showheaderinfo
+       * @description Show platform description in header
+       * @default true
        */
-      infoTerms?: string;
-      /** Infocontactname */
-      infoContactName?: string;
+      showHeaderInfo?: boolean;
       /**
-       * Infocontacturl
-       * Format: uri
+       * Showfooterinfo
+       * @description Show platform title and description in footer
+       * @default true
        */
-      infoContactUrl?: string;
-      /**
-       * Infocontactemail
-       * Format: email
-       */
-      infoContactEmail?: string;
+      showFooterInfo?: boolean;
     };
     /**
      * PlatformStats
@@ -1156,6 +1582,7 @@ export interface components {
        * Accentcolor
        * Format: color
        * @description Accent color used for this text in the client UI
+       * @default #305D97
        */
       accentColor?: string;
       /**
@@ -1211,6 +1638,7 @@ export interface components {
        * Accentcolor
        * Format: color
        * @description Accent color used for this text in the client UI
+       * @default #305D97
        */
       accentColor?: string;
       /**
@@ -1219,6 +1647,7 @@ export interface components {
        * @default false
        */
       isActive?: boolean;
+      [key: string]: unknown;
     };
     /**
      * TextStats
@@ -1242,25 +1671,46 @@ export interface components {
     /** TextUpdate */
     TextUpdate: {
       /** Title */
-      title?: string;
+      title?: string | null;
       /** Slug */
-      slug?: string;
-      /** Subtitle */
+      slug?: string | null;
+      /**
+       * Subtitle
+       * @description Subtitle translations of this text (if set, it must contain at least one element)
+       */
       subtitle?: components['schemas']['SubtitleTranslation'][] | null;
       /** Levels */
-      levels?: components['schemas']['StructureLevelTranslation'][][];
-      /** Defaultlevel */
+      levels?: components['schemas']['StructureLevelTranslation'][][] | null;
+      /**
+       * Defaultlevel
+       * @description Default structure level for the client to use for browsing this text
+       * @default 0
+       */
       defaultLevel?: number;
-      /** Locdelim */
+      /**
+       * Locdelim
+       * @description Delimiter for displaying text locations
+       * @default ,
+       */
       locDelim?: string;
-      /** Labeledlocation */
+      /**
+       * Labeledlocation
+       * @description Whether the UI should label the parts of the browse location with each levels' names
+       * @default true
+       */
       labeledLocation?: boolean;
       /**
        * Accentcolor
        * Format: color
+       * @description Accent color used for this text in the client UI
+       * @default #305D97
        */
       accentColor?: string;
-      /** Isactive */
+      /**
+       * Isactive
+       * @description Whether the text should be listed for non-admin users in the web client
+       * @default false
+       */
       isActive?: boolean;
     };
     /**
@@ -1305,7 +1755,7 @@ export interface components {
        * @description Data fields set public by this user
        * @default []
        */
-      publicFields?: ('firstName' | 'lastName' | 'affiliation')[];
+      publicFields?: ('id' | 'firstName' | 'lastName' | 'affiliation')[];
     };
     /**
      * UserRead
@@ -1343,7 +1793,7 @@ export interface components {
        * @description Data fields set public by this user
        * @default []
        */
-      publicFields?: ('firstName' | 'lastName' | 'affiliation')[];
+      publicFields?: ('id' | 'firstName' | 'lastName' | 'affiliation')[];
       /**
        * Createdat
        * Format: date-time
@@ -1352,6 +1802,11 @@ export interface components {
     };
     /** UserReadPublic */
     UserReadPublic: {
+      /**
+       * Id
+       * @example 5eb7cf5a86d9755df3a6c593
+       */
+      id: string;
       /** Username */
       username: string;
       /** Firstname */
@@ -1374,17 +1829,21 @@ export interface components {
       /** Isverified */
       isVerified?: boolean | null;
       /** Username */
-      username?: string;
+      username?: string | null;
       /** Firstname */
-      firstName?: string;
+      firstName?: string | null;
       /** Lastname */
-      lastName?: string;
+      lastName?: string | null;
       /** Affiliation */
-      affiliation?: string;
+      affiliation?: string | null;
       /** Locale */
       locale?: ('deDE' | 'enUS') | null;
-      /** Publicfields */
-      publicFields?: ('firstName' | 'lastName' | 'affiliation')[];
+      /**
+       * Publicfields
+       * @description Data fields set public by this user
+       * @default []
+       */
+      publicFields?: ('id' | 'firstName' | 'lastName' | 'affiliation')[];
     };
     /** ValidationError */
     ValidationError: {
@@ -1611,98 +2070,6 @@ export interface operations {
     };
   };
   /**
-   * Get layer
-   * @description Returns the data for a PlainText data layer
-   */
-  getPlaintextLayer: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          'application/json': components['schemas']['PlainTextLayerRead'];
-        };
-      };
-      /** @description Not found */
-      404: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  /**
-   * Update layer
-   * @description Updates the data for a PlainText data layer
-   */
-  updatePlaintextLayer: {
-    parameters: {
-      path: {
-        id: string;
-      };
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PlainTextLayerUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        content: {
-          'application/json': components['schemas']['PlainTextLayerRead'];
-        };
-      };
-      /** @description Not found */
-      404: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  /**
-   * Create layer
-   * @description Creates a PlainText data layer definition
-   */
-  createPlaintextLayer: {
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PlainTextLayerCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        content: {
-          'application/json': components['schemas']['PlainTextLayerRead'];
-        };
-      };
-      /** @description Not found */
-      404: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  /**
    * Find layers
    * @description Returns a list of all data layers matching the given criteria.
    *
@@ -1716,13 +2083,22 @@ export interface operations {
         level?: number;
         layerType?: string;
         limit?: number;
+        /** @description Include owners' user data, if any */
+        owners?: boolean;
+        /** @description Add flag indicating write permissions for requesting user */
+        writable?: boolean;
+        /** @description Include shared-with users' user data, if any */
+        shares?: boolean;
       };
     };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          'application/json': Record<string, never>[];
+          'application/json': (
+            | components['schemas']['DebugLayerRead']
+            | components['schemas']['PlaintextLayerRead']
+          )[];
         };
       };
       /** @description Not found */
@@ -1737,9 +2113,47 @@ export interface operations {
       };
     };
   };
-  /** Get generic layer data by id */
-  getGenericLayerDataById: {
+  /** Create layer */
+  createLayer: {
+    requestBody: {
+      content: {
+        'application/json':
+          | components['schemas']['DebugLayerCreate']
+          | components['schemas']['PlaintextLayerCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          'application/json':
+            | components['schemas']['DebugLayerRead']
+            | components['schemas']['PlaintextLayerRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Get layer */
+  getLayer: {
     parameters: {
+      query?: {
+        /** @description Include owners' user data, if any */
+        owners?: boolean;
+        /** @description Add flag indicating write permissions for requesting user */
+        writable?: boolean;
+        /** @description Include shared-with users' user data, if any */
+        shares?: boolean;
+      };
       path: {
         id: string;
       };
@@ -1748,8 +2162,165 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          'application/json': Record<string, never>;
+          'application/json':
+            | components['schemas']['DebugLayerRead']
+            | components['schemas']['PlaintextLayerRead'];
         };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Delete layer */
+  deleteLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Update layer */
+  updateLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        'application/json':
+          | components['schemas']['DebugLayerUpdate']
+          | components['schemas']['PlaintextLayerUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          'application/json':
+            | components['schemas']['DebugLayerRead']
+            | components['schemas']['PlaintextLayerRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Propose layer */
+  proposeLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Unpropose layer */
+  unproposeLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Publish layer */
+  publishLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Unpublish layer */
+  unpublishLayer: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        content: never;
       };
       /** @description Not found */
       404: {
@@ -2018,32 +2589,18 @@ export interface operations {
       };
     };
   };
-  /**
-   * Get translations
-   * @description Returns server-managed translations.
-   */
-  getTranslations: {
-    parameters: {
-      query?: {
-        lang?: string;
-      };
-    };
+  /** Get public users */
+  getPublicUsers: {
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          'application/json': Record<string, never>;
+          'application/json': components['schemas']['UserReadPublic'][];
         };
       };
       /** @description Not found */
       404: {
         content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
       };
     };
   };
@@ -2076,42 +2633,13 @@ export interface operations {
   /** Get segment */
   getSegment: {
     parameters: {
-      query: {
-        /** @description Key of the segment to retrieve */
-        key: string;
-        /** @description Locale of the segment to retrieve */
-        locale?: string;
+      path: {
+        id: string;
       };
     };
     responses: {
       /** @description Successful Response */
       200: {
-        content: {
-          'application/json': components['schemas']['ClientSegmentRead'];
-        };
-      };
-      /** @description Not found */
-      404: {
-        content: never;
-      };
-      /** @description Validation Error */
-      422: {
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  /** Create segment */
-  createSegment: {
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ClientSegmentCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
         content: {
           'application/json': components['schemas']['ClientSegmentRead'];
         };
@@ -2167,6 +2695,32 @@ export interface operations {
     responses: {
       /** @description Successful Response */
       200: {
+        content: {
+          'application/json': components['schemas']['ClientSegmentRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /** Create segment */
+  createSegment: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClientSegmentCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
         content: {
           'application/json': components['schemas']['ClientSegmentRead'];
         };
@@ -2443,9 +2997,9 @@ export interface operations {
   };
   /**
    * Get unit
-   * @description Returns the data for a PlainText data layer unit
+   * @description Returns the data for a Debug data layer unit
    */
-  getPlaintextUnit: {
+  getDebugUnit: {
     parameters: {
       path: {
         id: string;
@@ -2455,7 +3009,7 @@ export interface operations {
       /** @description Successful Response */
       200: {
         content: {
-          'application/json': components['schemas']['PlainTextUnitRead'];
+          'application/json': components['schemas']['DebugUnitRead'];
         };
       };
       /** @description Not found */
@@ -2472,9 +3026,9 @@ export interface operations {
   };
   /**
    * Update unit
-   * @description Updates the data for a PlainText data layer unit
+   * @description Updates the data for a Debug data layer unit
    */
-  updatePlaintextUnit: {
+  updateDebugUnit: {
     parameters: {
       path: {
         id: string;
@@ -2482,14 +3036,14 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['PlainTextUnitUpdate'];
+        'application/json': components['schemas']['DebugUnitUpdate'];
       };
     };
     responses: {
       /** @description Successful Response */
       200: {
         content: {
-          'application/json': components['schemas']['PlainTextUnitRead'];
+          'application/json': components['schemas']['DebugUnitRead'];
         };
       };
       /** @description Not found */
@@ -2506,19 +3060,111 @@ export interface operations {
   };
   /**
    * Create unit
-   * @description Creates a PlainText data layer unit
+   * @description Creates a Debug data layer unit
    */
-  createPlaintextUnit: {
+  createDebugUnit: {
     requestBody: {
       content: {
-        'application/json': components['schemas']['PlainTextUnitCreate'];
+        'application/json': components['schemas']['DebugUnitCreate'];
       };
     };
     responses: {
       /** @description Successful Response */
       201: {
         content: {
-          'application/json': components['schemas']['PlainTextUnitRead'];
+          'application/json': components['schemas']['DebugUnitRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /**
+   * Get unit
+   * @description Returns the data for a Plaintext data layer unit
+   */
+  getPlaintextUnit: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlaintextUnitRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /**
+   * Update unit
+   * @description Updates the data for a Plaintext data layer unit
+   */
+  updatePlaintextUnit: {
+    parameters: {
+      path: {
+        id: string;
+      };
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlaintextUnitUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        content: {
+          'application/json': components['schemas']['PlaintextUnitRead'];
+        };
+      };
+      /** @description Not found */
+      404: {
+        content: never;
+      };
+      /** @description Validation Error */
+      422: {
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  /**
+   * Create unit
+   * @description Creates a Plaintext data layer unit
+   */
+  createPlaintextUnit: {
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PlaintextUnitCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        content: {
+          'application/json': components['schemas']['PlaintextUnitRead'];
         };
       };
       /** @description Not found */

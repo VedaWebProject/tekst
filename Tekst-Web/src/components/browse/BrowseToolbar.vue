@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { NButton } from 'naive-ui';
+import { ref, onMounted, computed } from 'vue';
+import { NButton, NBadge } from 'naive-ui';
 import BrowseLocationControls from '@/components/browse/BrowseLocationControls.vue';
 import LocationLabel from '@/components/browse/LocationLabel.vue';
+import { useBrowseStore, useStateStore } from '@/stores';
+
 import CompressRound from '@vicons/material/CompressRound';
 import ExpandRound from '@vicons/material/ExpandRound';
 import LayersRound from '@vicons/material/LayersRound';
-import { useBrowseStore, useStateStore } from '@/stores';
 
 const state = useStateStore();
 const browse = useBrowseStore();
 
 const affixRef = ref(null);
+const layerDrawerBadgeLabel = computed(
+  () => browse.layers.filter((l) => l.active).length + '/' + browse.layers.length
+);
 
 onMounted(() => {
   if (affixRef.value) {
@@ -50,18 +54,24 @@ onMounted(() => {
           </template>
         </n-button>
 
-        <n-button
-          secondary
-          size="large"
-          :title="$t('browse.toolbar.tipOpenDataLayerList')"
-          color="#fff"
-          :focusable="false"
-          @click="browse.showLayerToggleDrawer = true"
+        <n-badge
+          :value="layerDrawerBadgeLabel"
+          color="var(--accent-color-inverted-pastel)"
+          :show="!!browse.layers.length"
         >
-          <template #icon>
-            <LayersRound />
-          </template>
-        </n-button>
+          <n-button
+            secondary
+            size="large"
+            :title="$t('browse.toolbar.tipOpenDataLayerList')"
+            color="#fff"
+            :focusable="false"
+            @click="browse.showLayerToggleDrawer = true"
+          >
+            <template #icon>
+              <LayersRound />
+            </template>
+          </n-button>
+        </n-badge>
       </div>
     </div>
   </div>
@@ -126,5 +136,11 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+</style>
+
+<style>
+.n-badge > .n-badge-sup {
+  color: var(--accent-color-inverted-dark);
 }
 </style>

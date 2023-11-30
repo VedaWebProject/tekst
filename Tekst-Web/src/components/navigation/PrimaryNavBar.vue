@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { NButton, NIcon } from 'naive-ui';
-import NavBarRouterLink from '@/components/navigation/NavBarRouterLink.vue';
 import ThemeModeSwitcher from '@/components/widgets/ThemeModeSwitcher.vue';
 import LocaleSwitcher from '@/components/widgets/LocaleSwitcher.vue';
 import UserOptionsButton from '@/components/widgets/UserOptionsButton.vue';
@@ -10,19 +9,23 @@ import HelpNavButton from '@/components/widgets/HelpNavButton.vue';
 import { useAuthStore, useStateStore } from '@/stores';
 import { useRoute, RouterLink } from 'vue-router';
 import { usePlatformData } from '@/platformData';
+import NavigationMenu from '@/components/navigation/NavigationMenu.vue';
+import { useMainMenuOptions } from './navMenuOptions';
 
 import MenuRound from '@vicons/material/MenuRound';
-import MorePagesDropdown from './MorePagesDropdown.vue';
+import DrawerMenu from './DrawerMenu.vue';
 
-const { pfData } = usePlatformData();
+const { pfData, systemHome } = usePlatformData();
 const auth = useAuthStore();
 const state = useStateStore();
-
-const menuOpen = ref(false);
-const menuVisible = computed(() => !state.smallScreen || menuOpen.value);
-
 const route = useRoute();
-const textParam = computed(() => state.text?.slug || pfData.value?.texts[0]?.slug);
+
+const { menuOptions: mainMenuOptions } = useMainMenuOptions(false);
+const menuOpen = ref(false);
+const showUserOptionsButton = computed(
+  () => pfData.value?.security?.closedMode === false || auth.loggedIn
+);
+
 watch(
   () => route.name,
   () => {
@@ -34,9 +37,32 @@ watch(
 <template>
   <div class="navbar" :class="state.smallScreen && 'navbar-smallscreen'">
     <img class="navbar-logo" :alt="`${pfData?.settings.infoPlatformName} Logo`" src="/logo.png" />
-    <div class="navbar-title">
-      <RouterLink to="/">{{ pfData?.settings.infoPlatformName }}</RouterLink>
+    <div class="title-container">
+      <RouterLink
+        :to="!!systemHome ? { path: '/' } : { name: 'browse' }"
+        :title="pfData?.settings.infoDescription"
+        class="navbar-title"
+      >
+        {{ pfData?.settings.infoPlatformName }}
+      </RouterLink>
+      <div v-if="pfData?.settings.showHeaderInfo" class="navbar-description">
+        {{ pfData?.settings.infoDescription }}
+      </div>
     </div>
+
+    <div v-if="!state.smallScreen" class="navbar-menu">
+      <NavigationMenu :options="mainMenuOptions" />
+      <div class="navbar-menu-divider"></div>
+      <div class="navbar-menu-extra">
+        <QuickSearchWidget />
+        <ThemeModeSwitcher />
+        <LocaleSwitcher />
+        <HelpNavButton />
+        <UserOptionsButton v-if="showUserOptionsButton" />
+      </div>
+    </div>
+
+    <div v-if="state.smallScreen" style="flex-grow: 2"></div>
     <n-button
       v-if="state.smallScreen"
       quaternary
@@ -52,29 +78,13 @@ watch(
         </n-icon>
       </template>
     </n-button>
-
-    <div v-show="menuVisible" class="navbar-menu">
-      <NavBarRouterLink
-        :label="$t('nav.browse')"
-        :route="{ name: 'browse', params: { text: textParam } }"
-        :show-icon="state.smallScreen"
-      />
-      <NavBarRouterLink
-        :label="$t('nav.search')"
-        :route="{ name: 'search', params: { text: textParam } }"
-        :show-icon="state.smallScreen"
-      />
-      <MorePagesDropdown />
-      <div class="navbar-menu-divider"></div>
-      <div class="navbar-menu-extra">
-        <QuickSearchWidget />
-        <ThemeModeSwitcher />
-        <LocaleSwitcher />
-        <HelpNavButton />
-        <UserOptionsButton v-if="pfData?.security?.closedMode === false || auth.loggedIn" />
-      </div>
-    </div>
   </div>
+
+  <DrawerMenu
+    v-if="state.smallScreen"
+    v-model:show="menuOpen"
+    :show-user-options-button="showUserOptionsButton"
+  />
 </template>
 
 <style scoped>
@@ -107,28 +117,41 @@ watch(
   font-weight: 300;
 }
 
+.title-container {
+  display: inline-flex;
+  flex-direction: column;
+  margin-right: var(--layout-gap);
+}
+
 .navbar-logo {
   height: 48px;
   width: auto;
-  margin-right: 12px;
+  margin-right: var(--content-gap);
 }
 
 .navbar-title {
-  margin-right: 1.75rem;
-  font-size: 1.25rem;
+  font-size: var(--app-ui-font-size-huge);
   white-space: nowrap;
+  min-width: 120px;
 }
 
 .navbar-smallscreen .navbar-title {
   flex-grow: 2;
 }
 
+.navbar-description {
+  opacity: 1;
+  font-size: var(--app-ui-font-size-mini);
+  width: 0;
+  min-width: 100%;
+  line-height: 1.2;
+}
+
 .navbar-menu {
-  flex-grow: 2;
+  flex-grow: 4;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--layout-gap);
 }
 .navbar-smallscreen .navbar-menu {
   flex-direction: column;
@@ -160,21 +183,5 @@ watch(
   width: 100%;
   max-width: 320px;
   margin: 0 auto 0 auto;
-}
-</style>
-
-<style>
-.navbar-smallscreen .navbar-router-link {
-  padding: 0.5rem 1.5rem;
-  background-color: var(--accent-color-fade5);
-  border-radius: var(--app-ui-border-radius);
-}
-
-.navbar-smallscreen .navbar-more {
-  padding: 0.5rem 1.5rem;
-}
-
-.navbar-smallscreen .quicksearch-widget {
-  flex-grow: 2;
 }
 </style>

@@ -24,9 +24,7 @@ async def test_create_unit(
         "layerType": "plaintext",
         "ownerId": user_data.get("id"),
     }
-    resp = await test_client.post(
-        "/layers/plaintext", json=payload, cookies=session_cookie
-    )
+    resp = await test_client.post("/layers", json=payload, cookies=session_cookie)
     assert resp.status_code == 201, status_fail_msg(201, resp)
     layer_data = resp.json()
     assert "id" in layer_data
@@ -48,15 +46,15 @@ async def test_create_unit(
         "layerId": layer_data["id"],
         "nodeId": node_id,
         "text": "Ein Raabe geht im Feld spazieren.",
-        "meta": {"foo": "bar"},
+        "comment": "This is a comment",
     }
     resp = await test_client.post(
         "/units/plaintext", json=payload, cookies=session_cookie
     )
     assert resp.status_code == 201, status_fail_msg(201, resp)
     assert isinstance(resp.json(), dict)
-    assert resp.json()["text"] == "Ein Raabe geht im Feld spazieren."
-    assert resp.json()["meta"]["foo"] == "bar"
+    assert resp.json()["text"] == payload["text"]
+    assert resp.json()["comment"] == payload["comment"]
     assert "id" in resp.json()
     unit_id = resp.json()["id"]
 
@@ -71,8 +69,8 @@ async def test_create_unit(
     assert resp.status_code == 200, status_fail_msg(200, resp)
     assert isinstance(resp.json(), dict)
     assert "id" in resp.json()
-    assert resp.json()["text"] == "Ein Raabe geht im Feld spazieren."
-    assert resp.json()["meta"]["foo"] == "bar"
+    assert resp.json()["text"] == payload["text"]
+    assert resp.json()["comment"] == payload["comment"]
 
     # fail to get unit with invalid ID
     resp = await test_client.get(

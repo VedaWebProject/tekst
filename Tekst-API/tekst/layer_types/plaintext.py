@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 
 from tekst.layer_types import LayerTypeABC
@@ -7,35 +9,32 @@ from tekst.models.layer_configs import DeepLLinksConfig
 from tekst.models.unit import UnitBase
 
 
-class PlainText(LayerTypeABC):
+class Plaintext(LayerTypeABC):
     """A simple plaintext layer type"""
-
-    @classmethod
-    def get_label(cls) -> str:
-        return "PlainText"
 
     @classmethod
     def get_description(cls) -> str:
         return "A simple plaintext data layer"
 
     @classmethod
-    def get_layer_model(cls) -> type["PlainTextLayer"]:
-        return PlainTextLayer
+    def layer_model(cls) -> type["PlaintextLayer"]:
+        return PlaintextLayer
 
     @classmethod
-    def get_unit_model(cls) -> type["PlainTextUnit"]:
-        return PlainTextUnit
+    def get_unit_model(cls) -> type["PlaintextUnit"]:
+        return PlaintextUnit
 
 
-class PlainTextLayerConfig(LayerConfigBase):
+class PlaintextLayerConfig(LayerConfigBase):
     deepl_links: DeepLLinksConfig = Field(default_factory=DeepLLinksConfig)
 
 
-class PlainTextLayer(LayerBase):
-    config: PlainTextLayerConfig = Field(default_factory=PlainTextLayerConfig)
+class PlaintextLayer(LayerBase):
+    layer_type: Literal["plaintext"]  # snake_cased layer type classname
+    config: PlaintextLayerConfig = Field(default_factory=PlaintextLayerConfig)
 
 
-class PlainTextUnit(UnitBase):
+class PlaintextUnit(UnitBase):
     """A unit of a plaintext data layer"""
 
     text: str | None = Field(

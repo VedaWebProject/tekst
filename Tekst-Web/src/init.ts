@@ -32,19 +32,6 @@ export function useInitializeApp() {
         return true;
       },
     },
-    // load i18n data from server
-    {
-      info: () => $t('init.serverI18n'),
-      action: async (success: boolean) => {
-        try {
-          await state.setLocale();
-          return success;
-        } catch (e) {
-          message.warning($t('errors.serverI18n'));
-          return false;
-        }
-      },
-    },
     // load platform data from server
     {
       info: () => $t('init.platformData'),
@@ -100,7 +87,7 @@ export function useInitializeApp() {
       action: async (success: boolean) => {
         initialized.value = true;
         state.globalLoadingProgress = 1;
-        state.finishGlobalLoading(200, 200);
+        state.finishGlobalLoading(800, 200);
         return success;
       },
     },

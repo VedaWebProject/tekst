@@ -20,6 +20,7 @@ _cfg: TekstConfig = get_config()
 
 
 class UserReadPublic(ModelBase):
+    id: PydanticObjectId
     username: str
     first_name: str | None = None
     last_name: str | None = None
@@ -83,4 +84,4 @@ class UserCreate(User, schemas.BaseUserCreate):
     is_active: bool = _cfg.security_users_active_by_default
 
 
-UserUpdate = User.get_update_model(schemas.BaseUserUpdate)
+UserUpdate = User.update_model(schemas.BaseUserUpdate)

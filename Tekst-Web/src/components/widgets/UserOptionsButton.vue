@@ -1,26 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, h, type Component } from 'vue';
 import { useAuthStore, useStateStore } from '@/stores';
-import { useRouter } from 'vue-router';
+import { type RouteLocationRaw, RouterLink } from 'vue-router';
 import { NButton, NIcon, NDropdown } from 'naive-ui';
 import { $t } from '@/i18n';
 import { useTheme } from '@/theme';
 
 import LogInRound from '@vicons/material/LogInRound';
 import LogOutRound from '@vicons/material/LogOutRound';
-import PersonRound from '@vicons/material/PersonRound';
-import RemoveRedEyeRound from '@vicons/material/RemoveRedEyeRound';
-import ManageAccountsRound from '@vicons/material/ManageAccountsRound';
-import PeopleFilled from '@vicons/material/PeopleFilled';
-import BarChartRound from '@vicons/material/BarChartRound';
-import MenuBookOutlined from '@vicons/material/MenuBookOutlined';
-import AddCircleOutlineRound from '@vicons/material/AddCircleOutlineRound';
-import SettingsApplicationsOutlined from '@vicons/material/SettingsApplicationsOutlined';
+import PersonFilled from '@vicons/material/PersonFilled';
+import ShieldOutlined from '@vicons/material/ShieldOutlined';
+import LayersFilled from '@vicons/material/LayersFilled';
 
 const auth = useAuthStore();
 const state = useStateStore();
 const { accentColors } = useTheme();
-const router = useRouter();
 
 const tooltip = computed(() =>
   auth.loggedIn
@@ -32,118 +26,83 @@ const showUserDropdown = ref(false);
 
 const userOptions = computed(() => [
   {
-    type: 'group',
-    label: $t('account.currentSession'),
-    key: 'session',
-    children: [
-      {
-        label: $t('account.logoutBtn'),
-        key: 'logout',
-        icon: renderIcon(LogOutRound),
-      },
-      {
-        type: 'divider',
-        key: 'dividerLogout',
-      },
-    ],
+    label: renderLink(() => `${auth.user?.firstName} ${auth.user?.lastName}`, {
+      name: 'account',
+    }),
+    key: 'account',
+    icon: renderIcon(PersonFilled),
   },
   {
-    type: 'group',
-    label: `${auth.user?.firstName} ${auth.user?.lastName} (${auth.user?.username})`,
-    key: 'user',
-    children: [
-      {
-        label: $t('account.profile'),
-        key: 'accountProfile',
-        icon: renderIcon(RemoveRedEyeRound),
+    label: renderLink(() => $t('dataLayers.heading'), {
+      name: 'dataLayers',
+      params: {
+        text: state.text?.slug || '',
       },
-      {
-        label: $t('account.account'),
-        key: 'accountManage',
-        icon: renderIcon(ManageAccountsRound),
-      },
-    ],
+    }),
+    key: 'dataLayers',
+    icon: renderIcon(LayersFilled),
   },
   ...(auth.user?.isSuperuser
     ? [
         {
-          type: 'divider',
-          key: 'dividerAdministration',
-        },
-        {
-          type: 'group',
-          label: $t('admin.optionGroupLabel'),
+          label: renderLink(() => $t('admin.optionGroupLabel'), {
+            name: 'admin',
+          }),
           key: 'admin',
-          children: [
-            {
-              label: $t('admin.statistics.heading'),
-              key: 'adminStatistics',
-              icon: renderIcon(BarChartRound),
-            },
-            {
-              label: $t('admin.users.heading'),
-              key: 'adminUsers',
-              icon: renderIcon(PeopleFilled),
-            },
-            {
-              label: $t('admin.text.heading'),
-              key: 'adminTexts',
-              icon: renderIcon(MenuBookOutlined),
-            },
-            {
-              label: $t('admin.newText.heading'),
-              key: 'adminNewText',
-              icon: renderIcon(AddCircleOutlineRound),
-            },
-            {
-              label: $t('admin.system.heading'),
-              key: 'adminSystem',
-              icon: renderIcon(SettingsApplicationsOutlined),
-            },
-          ],
+          icon: renderIcon(ShieldOutlined),
         },
       ]
     : []),
+  {
+    type: 'divider',
+    key: 'divider',
+  },
+  {
+    label: $t('account.logoutBtn'),
+    key: 'logout',
+    icon: renderIcon(LogOutRound),
+  },
 ]);
 
-const color = computed(() => (auth.loggedIn ? accentColors.value.base : undefined));
+function renderLink(
+  label: string | (() => string),
+  to: RouteLocationRaw,
+  props?: Record<string, unknown>
+) {
+  return () =>
+    h(
+      RouterLink,
+      {
+        to,
+        ...props,
+      },
+      { default: label }
+    );
+}
 
 function renderIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) });
 }
 
-async function handleClick() {
-  if (!auth.loggedIn) {
-    auth.showLoginModal(undefined, { name: 'accountProfile' });
-  } else if (!showUserDropdown.value) {
-    showUserDropdown.value = true;
-  }
+async function handleLoginClick() {
+  auth.showLoginModal(undefined, { name: 'accountProfile' });
 }
 
 function handleUserOptionSelect(key: string) {
   showUserDropdown.value = false;
   if (key === 'logout') {
     auth.logout();
-  } else if (key === 'adminTexts') {
-    router.push({
-      name: 'adminTexts',
-      params: { text: state.text?.slug },
-    });
-  } else {
-    router.push({
-      name: key,
-    });
   }
 }
 </script>
 
 <template>
   <n-dropdown
-    :show="showUserDropdown"
+    v-if="auth.loggedIn"
     :options="userOptions"
-    :on-clickoutside="() => (showUserDropdown = false)"
     :size="state.dropdownSize"
-    show-arrow
+    to="#app-container"
+    trigger="hover"
     @select="handleUserOptionSelect"
   >
     <n-button
@@ -152,25 +111,31 @@ function handleUserOptionSelect(key: string) {
       size="large"
       :title="tooltip"
       :focusable="false"
-      :color="color"
-      :style="auth.loggedIn && 'color: #fff'"
+      :color="accentColors.base"
+      style="color: #fff"
       class="user-options-button"
-      @click="handleClick"
     >
       <template #icon>
-        <n-icon v-if="auth.loggedIn" :component="PersonRound" />
-        <n-icon v-else :component="LogInRound" />
+        <n-icon :component="PersonFilled" />
       </template>
     </n-button>
   </n-dropdown>
-</template>
 
-<style scoped>
-.user-options-button {
-  font-size: var(--app-ui-font-size-mini) !important;
-  font-weight: var(--app-ui-font-weight-normal) !important;
-}
-</style>
+  <n-button
+    v-else
+    secondary
+    circle
+    size="large"
+    :title="tooltip"
+    :focusable="false"
+    class="user-options-button"
+    @click="handleLoginClick"
+  >
+    <template #icon>
+      <n-icon :component="LogInRound" />
+    </template>
+  </n-button>
+</template>
 
 <style scoped>
 .user-options-button {

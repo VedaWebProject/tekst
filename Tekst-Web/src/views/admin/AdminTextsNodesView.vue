@@ -14,12 +14,11 @@ import {
 import { h, ref } from 'vue';
 import { DELETE, GET, POST, getFullUrl, type NodeRead } from '@/api';
 import { useStateStore } from '@/stores';
-import { onMounted } from 'vue';
 import { useMessages } from '@/messages';
 import { $t } from '@/i18n';
 import { watch } from 'vue';
 import type { Component, Ref } from 'vue';
-import { positiveButtonProps } from '@/components/dialogButtonProps';
+import { negativeButtonProps, positiveButtonProps } from '@/components/dialogButtonProps';
 import RenameNodeModal from '@/components/admin/RenameNodeModal.vue';
 import AddNodeModal from '@/components/admin/AddNodeModal.vue';
 
@@ -69,13 +68,15 @@ const showAddModal = ref(false);
 const nodeParentToAddTo = ref<NodeTreeOption | null>(null);
 
 async function loadTreeData(node?: TreeOption) {
+  loadingData.value = true;
   const { data, error } = await GET('/nodes/children', {
     params: {
       query: { textId: state.text?.id || '', ...(node ? { parentId: String(node.key) } : {}) },
     },
   });
   if (error) {
-    message.error($t('errors.unexpected'), error.detail?.toString());
+    message.error($t('errors.unexpected'), error);
+    loadingData.value = false;
     return;
   }
   const subTreeData: NodeTreeOption[] = data.map((child) => ({
@@ -91,6 +92,7 @@ async function loadTreeData(node?: TreeOption) {
   } else {
     node.children = subTreeData;
   }
+  loadingData.value = false;
 }
 
 function isDropAllowed(info: {
@@ -150,7 +152,7 @@ async function moveNode(dropData: TreeDropInfo) {
       })
     );
   } else {
-    message.error($t('errors.unexpected'), error.detail?.toString());
+    message.error($t('errors.unexpected'), error);
   }
   // update tree data
   if (dropData.dragNode.parentKey === null) {
@@ -191,7 +193,7 @@ async function deleteNode(node: TreeOption) {
       })
     );
   } else {
-    message.error($t('errors.unexpected'), error.detail?.toString());
+    message.error($t('errors.unexpected'), error);
   }
   loadingDelete.value = false;
 }
@@ -205,7 +207,8 @@ async function handleDeleteClick(node: NodeTreeOption) {
     title: $t('general.warning'),
     content: $t('admin.text.nodes.warnDeleteNode', { nodeLabel: node.label }),
     positiveText: $t('general.deleteAction'),
-    positiveButtonProps: positiveButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: true,
     onPositiveClick: async () => {
       d.loading = true;
@@ -387,13 +390,12 @@ function renderSuffix(info: { option: TreeOption; checked: boolean; selected: bo
   ]);
 }
 
-onMounted(() => loadTreeData());
-
 watch(
   () => state.text?.id,
   () => {
     loadTreeData();
-  }
+  },
+  { immediate: true }
 );
 </script>
 
@@ -407,7 +409,7 @@ watch(
     {{ $t('admin.text.nodes.warnGeneral') }}
   </n-alert>
 
-  <n-alert v-else :title="$t('general.info')" type="info">
+  <n-alert v-if="!treeData.length && !loadingData" closable :title="$t('general.info')" type="info">
     {{ $t('admin.text.nodes.infoNoNodes') }}
   </n-alert>
 
@@ -415,9 +417,9 @@ watch(
     style="
       display: flex;
       flex-wrap: wrap;
-      justify-content: end;
+      justify-content: space-between;
       gap: var(--layout-gap);
-      padding: var(--layout-gap) 0 0 var(--layout-gap);
+      margin-top: var(--layout-gap);
     "
   >
     <n-checkbox v-if="treeData.length" v-model:checked="showWarnings">
@@ -498,10 +500,3 @@ watch(
 
   <AddNodeModal v-model:show="showAddModal" :parent="nodeParentToAddTo" @submit="handleAddResult" />
 </template>
-
-<style>
-.n-tree-node-switcher,
-.n-tree-node-switcher--expanded {
-  align-self: center;
-}
-</style>

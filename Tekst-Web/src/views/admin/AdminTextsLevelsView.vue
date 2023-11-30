@@ -3,7 +3,6 @@ import { useStateStore } from '@/stores';
 import InsertLevelButton from '@/components/admin/InsertLevelButton.vue';
 import { textFormRules } from '@/formRules';
 import {
-  NSpace,
   NIcon,
   NInput,
   NSelect,
@@ -19,7 +18,7 @@ import {
 import { computed, ref } from 'vue';
 import { localeProfiles } from '@/i18n';
 import type { StructureLevelTranslation } from '@/api';
-import ModalButtonFooter from '@/components/ModalButtonFooter.vue';
+import ButtonFooter from '@/components/ButtonFooter.vue';
 import HelpButtonWidget from '@/components/HelpButtonWidget.vue';
 import { negativeButtonProps, positiveButtonProps } from '@/components/dialogButtonProps';
 
@@ -94,8 +93,8 @@ function handleDeleteClick(level: number) {
     }),
     positiveText: $t('general.deleteAction'),
     negativeText: $t('general.cancelAction'),
-    positiveButtonProps: positiveButtonProps,
-    negativeButtonProps: negativeButtonProps,
+    positiveButtonProps,
+    negativeButtonProps,
     autoFocus: false,
     closable: false,
     onPositiveClick: async () => {
@@ -111,7 +110,7 @@ function handleDeleteClick(level: number) {
           })
         );
       } else {
-        message.error($t('errors.unexpected'), error.detail?.toString());
+        message.error($t('errors.unexpected'), error);
       }
       loading.value = false;
     },
@@ -145,7 +144,7 @@ async function handleModalSubmit() {
             $t('admin.text.levels.msgInsertSuccess', { position: editModalLevel.value + 1 })
           );
         } else {
-          message.error($t('errors.unexpected'), error.detail?.toString());
+          message.error($t('errors.unexpected'), error);
         }
       } else if (editModalAction.value === 'edit') {
         const textUpdates = {
@@ -167,7 +166,7 @@ async function handleModalSubmit() {
             $t('admin.text.levels.msgEditSuccess', { position: editModalLevel.value + 1 })
           );
         } else {
-          message.error($t('errors.unexpected'), error.detail?.toString());
+          message.error($t('errors.unexpected'), error);
         }
       }
       await loadPlatformData();
@@ -262,7 +261,7 @@ async function handleModalSubmit() {
       require-mark-placement="right-hanging"
     >
       <!-- STRUCTURE LEVEL -->
-      <n-form-item ignore-path-change :show-label="false" :path="`translations`">
+      <n-form-item ignore-path-change :show-label="false" path="translations">
         <n-dynamic-input
           v-model:value="formModel.translations"
           :min="1"
@@ -309,7 +308,7 @@ async function handleModalSubmit() {
             </div>
           </template>
           <template #action="{ index: indexAction, create, remove }">
-            <n-space style="margin-left: 20px; flex-wrap: nowrap">
+            <ButtonFooter>
               <n-button
                 secondary
                 circle
@@ -330,20 +329,20 @@ async function handleModalSubmit() {
                   <n-icon :component="AddRound" />
                 </template>
               </n-button>
-            </n-space>
+            </ButtonFooter>
           </template>
         </n-dynamic-input>
       </n-form-item>
     </n-form>
 
-    <ModalButtonFooter>
+    <ButtonFooter>
       <n-button secondary :disabled="loading" @click="showEditModal = false">
         {{ $t('general.cancelAction') }}
       </n-button>
       <n-button type="primary" :loading="loading" :disabled="loading" @click="handleModalSubmit">
         {{ $t('general.saveAction') }}
       </n-button>
-    </ModalButtonFooter>
+    </ButtonFooter>
   </n-modal>
 </template>
 
